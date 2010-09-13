@@ -22,7 +22,7 @@
 
 #include <tpie/portability.h>
 #include <algorithm>
-
+#include <string.h>
 #include <tpie/progress_indicator_terminal.h>
 
 namespace tpie {
