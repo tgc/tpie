@@ -19,14 +19,11 @@
 #include "../app_config.h"
 #include <tpie/portability.h>
 #include <cstring>
-// #include <tpie/stream/posix_bte.h>
-// #include <tpie/stream/concepts.h>
-// #include <tpie/stream/exception.h>
-// #include <tpie/stream/fd_file.h>
 #include <tpie/file_stream.h>
 #include <tpie/file.h>
 #include <tpie/util.h>
 #include <tpie/file_accessor/stdio.h>
+#include <tpie/file_accessor/posix.h>
 
 using namespace std;
 using namespace tpie;
@@ -119,6 +116,8 @@ int main(int argc, char ** argv) {
 	//TODO add memory allocation tests
  	if (argc == 2 && !strcmp(argv[1], "file_accessor_stdio")) {
  		test_file_accessor<file_accessor::stdio>();
+ 	} else if (argc == 2 && !strcmp(argv[1], "file_accessor_posix")) {
+ 		test_file_accessor<file_accessor::posix>();
  	} else if (argc == 2 && !strcmp(argv[1], "file_stream")) {
 		///First a simple test
 		double blockFactor=file_base::calculate_block_factor(128*sizeof(int));

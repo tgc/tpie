@@ -75,6 +75,7 @@ add_test(streaming::pull_block_buffer--minimum_memory streaming pull_block_buffe
 add_test(streaming::pull_block_buffer--process streaming pull_block_buffer process)
 
 add_test(file_accessor_stdio stream_test file_accessor_stdio)
+add_test(file_accessor_posix stream_test file_accessor_posix)
 add_test(file_stream stream_test file_stream)
 add_test(substreams stream_test substreams)
 #add_test(fd_file stream_test fd_file)
