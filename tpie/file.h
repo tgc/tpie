@@ -23,12 +23,13 @@
 #include <tpie/exception.h>
 #include <tpie/file_accessor/file_accessor.h>
 #include <tpie/file_accessor/stdio.h>
+#include <tpie/file_accessor/posix.h>
 #include <tpie/mm_base.h>
 #include <tpie/mm_manager.h>
 
 namespace tpie {
 
-typedef tpie::file_accessor::stdio default_file_accessor;
+typedef tpie::file_accessor::posix default_file_accessor;
 
 class file_base {
 protected:
