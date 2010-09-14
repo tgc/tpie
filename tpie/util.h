@@ -1,4 +1,4 @@
-// -*- mode: c++; tab-width: 4; indent-tabs-mode: t; eval: (progn (c-set-style "stroustrup") (c-set-offset 'innamespace 0)); -*-
+// -*- Mode: C++; tab-width: 4; indent-tabs-mode: t; eval: (progn (c-set-style "stroustrup") (c-set-offset 'innamespace 0)); -*-
 // vi:set ts=4 sts=4 sw=4 noet :
 // Copyright 2009, The TPIE development team
 // 
@@ -21,6 +21,7 @@
 #define __TPIE_UTIL_H__
 
 #include <tpie/types.h>
+#include <tpie/portability.h>
 #include <cmath>
 namespace tpie {
 
@@ -42,13 +43,32 @@ const char directory_delimiter = '\\';
 const char directory_delimiter = '/';
 #endif
 
+///////////////////////////////////////////////////////////////////////////
+/// Any internal memory datastructur whos memory usage is linear
+/// in the numebr of elements.
+/// The structure must implement memory_cooeficient and
+/// memory_overhead
+///////////////////////////////////////////////////////////////////////////
 template <typename child_t> 
 struct linear_memory_base {
+
+	///////////////////////////////////////////////////////////////////////////
+	// Return the number of bytes required to create a datatstucture supporting 
+	// a given number of elements
+	// \param size The number of elements to support
+	// \return The abount of memory required in bytes
+	///////////////////////////////////////////////////////////////////////////
 	inline static offset_type memory_usage(offset_type size) {
 		return floor( size * child_t::memory_coefficient() + child_t::memory_overhead() );
 	}
 
-	inline static memory_size_type memory_fits(memory_size_type memory) {
+	///////////////////////////////////////////////////////////////////////////
+	// Return the maximum number of elements that can be contained in 
+	// in the stucture when it is allowed to fill a given number of bytes
+	// \param memory The number of bytes the structure is allowed to occupie
+	// \return The number of elements that will fit in the structure
+	///////////////////////////////////////////////////////////////////////////
+	inline static size_type memory_fits(size_type memory) {
 		return floor( (memory - child_t::memory_overhead()) / child_t::memory_coefficient() );
 	}
 };

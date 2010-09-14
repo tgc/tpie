@@ -21,6 +21,7 @@
 #define _TPIE_PROGRESS_INDICATOR_SPIN_H
 
 #include <tpie/portability.h>
+#include <string.h>
 #include <algorithm>
 #include <string.h>
 #include <tpie/progress_indicator_terminal.h>
@@ -112,14 +113,13 @@ namespace tpie {
 	////////////////////////////////////////////////////////////////////
 
 	virtual void refresh() {
-	    m_state = ++m_state % m_numberOfStates;
+		m_state = ++m_state % m_numberOfStates;
 
-	    //  Use the last symbol for indicating "done".
-	    if (m_current == m_maxRange) m_state = m_numberOfStates;
+		//  Use the last symbol for indicating "done".
+		if (m_current == m_maxRange) m_state = m_numberOfStates;
 
-	    //  Go to the beginning of the line and print the description.
-	    std::cout << "\r" << m_description << " " << m_symbols[m_state] << std::flush;
-	
+		//  Go to the beginning of the line and print the description.
+		std::cout << "\r" << m_description << " " << m_symbols[m_state] << std::flush;
 	}
 
     protected:
@@ -132,7 +132,6 @@ namespace tpie {
 
 	/**  The current character used for the spinning indicator.  */
 	unsigned short m_state;
-
 
     private:
 	progress_indicator_spin();

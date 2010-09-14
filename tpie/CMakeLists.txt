@@ -83,21 +83,28 @@ else(WIN32)
 endif(WIN32)
 
 set (OTHER_HEADERS
+  array.h
   b_vector.h
   bit.h   
+  bit_array.h
   bit_matrix.h
   comparator.h
+  concept_doc.h
   concepts.h
   config.h.cmake
   cpu_timer.h
   exception.h
   file_count.h
+  hash_map.h
+  imported/cycle.h
+  internal_priority_queue.h
   internal_sort.h
   logstream.h
   mergeheap.h
   mm.h
   mm_base.h
   mm_manager.h
+  packed_array.h
   persist.h
   portability.h
   pq_internal_heap.h
@@ -106,6 +113,7 @@ set (OTHER_HEADERS
   pq_merge_heap.inl
   pq_overflow_heap.h
   pq_overflow_heap.inl
+  prime.h
   progress_indicator_arrow.h
   progress_indicator_base.h
   progress_indicator_spin.h
@@ -122,7 +130,8 @@ set (OTHER_HEADERS
   tpie_assert.h
   tpie_log.h
   util.h
-  vararray.h)
+  vararray.h
+  )
 
 set (AMI_SOURCES
 	#	bit_permute.cpp
@@ -135,18 +144,18 @@ set (BTE_SOURCES
 	)
 
 set (OTHER_SOURCES
-  file_count.cpp
-  streaming/memory.cpp
-  #bit.cpp
-  #bit_matrix.cpp
   cpu_timer.cpp
   logstream.cpp
   mm_base.cpp
   mm_manager.cpp
   portability.cpp
-  tpie_log.cpp
+  prime.cpp
+  progress_indicator_base.cpp
+  streaming/memory.cpp
   tempname.cpp
+  tpie_log.cpp
   util.cpp
+  file_count.cpp
   )
 
 source_group("BTE" FILES ${BTE_HEADERS} ${BTE_SOURCES})

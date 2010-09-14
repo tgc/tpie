@@ -20,7 +20,7 @@
 #ifndef _TPIE_PQ_OVERFLOW_HEAP_H_
 #define _TPIE_PQ_OVERFLOW_HEAP_H_
 
-#include "pq_internal_heap.h"
+#include <tpie/internal_priority_queue.h>
 
 namespace tpie {
 
@@ -44,7 +44,7 @@ public:
     /// \param maxsize Maximal size of queue
     ///
     /////////////////////////////////////////////////////////
-    pq_overflow_heap(memory_size_type maxsize);
+    pq_overflow_heap(memory_size_type maxsize, Comparator c=Comparator());
 
     /////////////////////////////////////////////////////////
     ///
@@ -139,10 +139,9 @@ public:
     void sorted_pop();
 
 private:
-    Comparator comp_;
-    pq_internal_heap<T, Comparator>* h;
-    memory_size_type maxsize;
-    T dummy;
+    Comparator comp;
+	internal_priority_queue<T, Comparator> h;
+    TPIE_OS_SIZE_T maxsize;
 };
 	
 	template<typename T, typename Comparator>

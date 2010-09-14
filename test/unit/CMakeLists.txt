@@ -8,29 +8,32 @@ macro(add_unittest NAME)
   endforeach(TEST)
 endmacro(add_unittest)
 
+macro(add_fulltest NAME)
+ set(MTESTS ${ARGV})
+  list(REMOVE_AT MTESTS 0)
+  foreach(TEST ${MTESTS})
+    add_test(NAME ${NAME}_${TEST} CONFIGURATIONS FullTest COMMAND ut-${NAME} ${TEST})
+  endforeach(TEST)
+endmacro(add_fulltest)
+
+add_unittest(hashmap chaining linear_probing iterators memory)
+add_unittest(internal_queue basic memory)
+
+add_unittest(external_priority_queue basic)
+add_fulltest(external_priority_queue medium large large_cycle)
+
+add_unittest(internal_priority_queue basic memory)
+add_fulltest(internal_priority_queue large_cycle)
 
 add_unittest(array basic iterators memory bit_basic bit_iterators bit_memory)
-
-add_executable(test_bte test_bte.cpp)
-target_link_libraries(test_bte tpie)
-
-add_executable(test_array test_array.cpp)
-target_link_libraries(test_array tpie)
-
-add_executable(test_simplequeue test_simpleqeue.cpp)
-target_link_libraries(test_simplequeue tpie)
+add_unittest(streaming source sink sort)
+add_unittest(disjoint_set basic memory)
 
 add_executable(streaming streaming.cpp)
 target_link_libraries(streaming tpie)
 
 add_executable(stream_test stream.cpp)
 target_link_libraries(stream_test tpie)
-
-
-if(NOT WIN32) 
-set(BTES ${BTES} ufs mmap)
-endif(NOT WIN32)
-set(BTES ${BTES} ami_stream cache stdio)
 
 add_test(streaming::stream_source--memory streaming stream_source memory)
 add_test(streaming::stream_source::minimum_memory streaming stream_source minimum_memory)
@@ -55,18 +58,6 @@ add_test(streaming--virtual--memory streaming virtual memory)
 add_test(streaming--virtual--minimum_memory streaming virtual minimum_memory)
 add_test(streaming--virtual--process streaming virtual process)
 
-add_test(array_basic test_array basic)
-add_test(array_iterators test_array iterators)
-add_test(array_memory test_array memory)
-add_test(simplequeue_basic test_simplequeue basic)
-add_test(simplequeue_memory test_simplequeue memory)
-
-
-#foreach(bte ${BTES})
-#  foreach(test basic randomread array)
-#    add_test(bte_${bte}_${test} test_bte ${bte} ${test})
-#  endforeach(test)
-#endforeach(bte)
 add_test(streaming::push_block_buffer--memory streaming push_block_buffer memory)
 add_test(streaming::push_block_buffer--minimum_memory streaming push_block_buffer minimum_memory)
 add_test(streaming::push_block_buffer--process streaming push_block_buffer process)

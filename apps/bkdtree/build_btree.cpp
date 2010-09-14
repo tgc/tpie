@@ -112,7 +112,6 @@ int main(int argc, char **argv) {
   cpu_timer atimer;
   app_params_t::record_t *pp;
   double time_wall, time_io;
-  int i;
 
   if (params.do_sort && err == tpie::ami::NO_ERROR) {
     cerr << "Sorting..." << endl;
@@ -185,7 +184,7 @@ int main(int argc, char **argv) {
 
   if (params.do_insert && err == tpie::ami::NO_ERROR) {
     cerr << "Inserting..." << endl;
-    i = 0;
+    TPIE_OS_OFFSET i = 0;
     assert(params.in_stream != NULL);
     atimer.start();
     params.in_stream->seek(0);
@@ -319,7 +318,7 @@ int main(int argc, char **argv) {
     btree2->load(btree);
     cerr << "Done" << endl;
     cerr << "\tSearching 100 points..." << endl;
-    for (i = 0; i < 100; i++)
+    for (int i = 0; i < 100; i++)
       if (!btree->find(pa[i].key, p))
 	cerr << "\t\tPoint not found" << endl;
 

@@ -1,6 +1,6 @@
 // -*- mode: c++; tab-width: 4; indent-tabs-mode: t; eval: (progn (c-set-style "stroustrup") (c-set-offset 'innamespace 0)); -*-
 // vi:set ts=4 sts=4 sw=4 noet :
-// Copyright 2009, The TPIE development team
+// Copyright 2010, The TPIE development team
 // 
 // This file is part of TPIE.
 // 
@@ -22,6 +22,12 @@
 #include <tpie/types.h>
 #include <boost/concept_check.hpp>
 namespace tpie {
+
+/////////////////////////////////////////////////////////
+/// \file concepts.h
+/// \brief Implementaton boost concept checkers
+/////////////////////////////////////////////////////////
+
 namespace concepts {
 
 template <class T>
@@ -34,5 +40,20 @@ public:
 };
 
 }
+
+/////////////////////////////////////////////////////////
+/// \brief Check if a structure adhears to the linear_memory_structure concept
+/// 
+/// \sa linear_memory_structure_doc
+/////////////////////////////////////////////////////////
+template <typename T>
+struct linear_memory_structure_concept {
+  BOOST_CONCEPT_USAGE(linear_memory_structure_concept) {
+	  (double)T::memory_coefficient();
+	  (double)T::memory_overhead();
+  }
+};
+
 }
 #endif //__TPIE_CONCEPTS_H__
+
