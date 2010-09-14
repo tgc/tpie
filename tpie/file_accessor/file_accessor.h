@@ -26,9 +26,10 @@ namespace file_accessor {
 
 class file_accessor {
 protected:
-	std::string m_path;
 	stream_size_type m_size;
 	memory_size_type m_userDataSize;
+	memory_size_type m_itemSize;
+	std::string m_path;
 public:
 	virtual void open(const std::string & path, 
 					  bool read, 
@@ -42,16 +43,11 @@ public:
 	virtual void write_user_data(const void * data) = 0;
 	virtual void truncate(stream_size_type size) = 0;
 	virtual ~file_accessor() {}
-	inline stream_size_type size() const {
-		return m_size;
-	}
-	inline const std::string & path() const {
-		return m_path;
-	}
-
-	inline memory_size_type user_data_size() const {
-		return m_userDataSize;
-	}
+	inline stream_size_type size() const {return m_size;}
+	inline const std::string & path() const {return m_path;}
+	inline memory_size_type user_data_size() const {return m_userDataSize;}
+	void validate_header(const stream_header_t & header);
+	void fill_header(stream_header_t & header, bool clean);
 };
 
 }

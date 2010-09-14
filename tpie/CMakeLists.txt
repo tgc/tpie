@@ -69,7 +69,9 @@ set (STREAM_HEADERS
 set (STREAM_SOURCES
 #  stream/fd_file_base.cpp
 #  stream/stdio_bte.cpp
+   file_accessor/file_accessor.cpp
    file_accessor/stdio.cpp
+   file_accessor/posix.cpp
    file_base.cpp
   )
 

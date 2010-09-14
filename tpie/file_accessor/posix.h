@@ -16,26 +16,25 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with TPIE.  If not, see <http://www.gnu.org/licenses/>
-#ifndef _TPIE_FILE_ACCESSOR_STDIO_H
-#define _TPIE_FILE_ACCESSOR_STDIO_H
+#ifndef _TPIE_FILE_ACCESSOR_POSIX_H
+#define _TPIE_FILE_ACCESSOR_POSIX_H
 
 #include <tpie/file_accessor/file_accessor_crtp.h>
-
 namespace tpie {
 namespace file_accessor {
 
-class stdio: public file_accessor_crtp<stdio> {
+class posix: public file_accessor_crtp<posix> {
 private:
-	FILE * m_fd;
+	int m_fd;
 	bool m_write;
 
-	friend class file_accessor_crtp<stdio>;
-	
+	friend class file_accessor_crtp<posix>;
+
 	inline void read_i(void * data, memory_size_type size);
 	inline void write_i(const void * data, memory_size_type size);
-	inline void seek_i(stream_size_type size);
+	inline void seek_i(stream_size_type offset);
 public:
-	stdio();
+	posix();
 	virtual void open(const std::string & path,
 					  bool read,
 					  bool write,
@@ -43,9 +42,9 @@ public:
 					  memory_size_type userDataSize);
 	virtual void close();
 	virtual void truncate(stream_size_type size);
-	inline ~stdio() {close();}
+	inline ~posix() {close();}
 };
 
 }
 }
-#endif //_TPIE_FILE_ACCESSOR_STDIO_H
+#endif //_TPIE_FILE_ACCESSOR_POSIX_H

@@ -16,36 +16,34 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with TPIE.  If not, see <http://www.gnu.org/licenses/>
-#ifndef _TPIE_FILE_ACCESSOR_STDIO_H
-#define _TPIE_FILE_ACCESSOR_STDIO_H
+#ifndef _TPIE_FILE_ACCESSOR_FILE_ACCESSOR_CRTP_H
+#define _TPIE_FILE_ACCESSOR_FILE_ACCESSOR_CRTP_H
 
-#include <tpie/file_accessor/file_accessor_crtp.h>
+#include <tpie/file_accessor/file_accessor.h>
 
 namespace tpie {
 namespace file_accessor {
 
-class stdio: public file_accessor_crtp<stdio> {
+template <typename child_t, bool minimizeSeeks=true>
+class file_accessor_crtp: public file_accessor {
 private:
-	FILE * m_fd;
-	bool m_write;
-
-	friend class file_accessor_crtp<stdio>;
-	
-	inline void read_i(void * data, memory_size_type size);
-	inline void write_i(const void * data, memory_size_type size);
+	inline void read_i(void *, memory_size_type size);
+	inline void write_i(const void *, memory_size_type size);
 	inline void seek_i(stream_size_type size);
+	stream_size_type location;
+protected:
+	inline void invalidateLocation();
+	void throw_errno();
+	void read_header();
+	void write_header(bool clean);
 public:
-	stdio();
-	virtual void open(const std::string & path,
-					  bool read,
-					  bool write,
-					  memory_size_type itemSize,
-					  memory_size_type userDataSize);
-	virtual void close();
-	virtual void truncate(stream_size_type size);
-	inline ~stdio() {close();}
+	virtual memory_size_type read(void * data, stream_size_type offset, memory_size_type size);
+	virtual void write(const void * data, stream_size_type offset, memory_size_type size);
+	virtual void read_user_data(void * data);
+	virtual void write_user_data(const void * data);
+	static inline memory_size_type memory_usage(memory_size_type count) {return sizeof(child_t) * count;}
 };
-
+	
 }
 }
-#endif //_TPIE_FILE_ACCESSOR_STDIO_H
+#endif //_TPIE_FILE_ACCESSOR_FILE_ACCESSOR_CRTP_H
