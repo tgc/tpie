@@ -267,7 +267,7 @@ int test_stream() {
     ami::stream<foo_t<40> >* s;
     int failed = 0;
 	ami::err err = ami::NO_ERROR;
-    std::string fn = tpie::tempDir + "tpie00.stream";
+    std::string fn = tempname::get_actual_path() + "tpie00.stream";
     std::string pfn;
     foo_t<40> afoo = thefoo;
     foo_t<40> *pafoo;
@@ -564,9 +564,9 @@ int test_scan_cxx() {
     int i;
     ami::stream< std::pair<int,int> >* ts;
 
-    std::string fns = tpie::tempDir + "tpie00.stream";
-    std::string fnt0 = tpie::tempDir + "tpie00.txt";
-    std::string fnt1 = tpie::tempDir + "tpie01.txt";
+    std::string fns = tempname::get_actual_path() + "tpie00.stream";
+    std::string fnt0 = tempname::get_actual_path() + "tpie00.txt";
+    std::string fnt1 = tempname::get_actual_path() + "tpie01.txt";
 
     // Print the test heading.
     print_msg("Testing ami::scan with C++ streams", 0);
@@ -851,7 +851,7 @@ int test_large_files() {
 	static_cast<stream_offset_type>(1024) / 
 	static_cast<stream_offset_type>(sizeof(stream_offset_type));
 
-	std::string fn = tpie::tempDir + "tpie_large.stream"; 
+	std::string fn = tempname::get_actual_path() + "tpie_large.stream"; 
 
     print_msg("Testing large file support", 0);
     if (been_here) {

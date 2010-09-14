@@ -271,7 +271,7 @@ int main(int argc, char **argv) {
     seed_random((unsigned int)TPIE_OS_TIME(NULL));
 
     atimer.start();  
-    for (i = 0; i < params.wquery_count; i++) {
+    for (memory_size_type i = 0; i < params.wquery_count; i++) {
 		lop[0] = tpie::random() % mbrdx  - wqdx / 2;
 		lop[1] = tpie::random() % mbrdy  - wqdy / 2;
       hip[0] = lop[0] + wqdx;
@@ -305,7 +305,7 @@ int main(int argc, char **argv) {
     app_params_t::record_t pa[100];
     memory_size_type insert_count = 50000;
     cerr << "\tInserting " << static_cast<TPIE_OS_OUTPUT_SIZE_T>(insert_count) << " random points..." << flush;
-    for (i = 0; i < insert_count; i++) {
+    for (memory_size_type i = 0; i < insert_count; i++) {
 		p[0] = tpie::random() % MAX_VALUE;
 		p[1] = tpie::random() % MAX_VALUE;
       if (i < 100)

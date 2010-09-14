@@ -20,6 +20,7 @@
 #include "app_config.h"
 #include <tpie/portability.h>
 #include <tpie/stream.h>
+#include <tpie/tempname.h>
 #include "getopts.h"
 #include <string.h>
 
@@ -275,7 +276,7 @@ void get_app_info(int argc, char** argv, appInfo & Info){
 
     init_opts(opts, argc, argv); 
   
-    Info.path=tpie::tempDir;
+    Info.path=tempname::get_actual_path();
     Info.item_size=APP_ITEM_SIZE;
     Info.num_items=APP_DEFAULT_N_ITEMS;
 

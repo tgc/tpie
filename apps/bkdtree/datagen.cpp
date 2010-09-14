@@ -341,7 +341,7 @@ int main(int argc, char **argv) {
     case 'f': // flush cache.
       sz = atoi(argv[++i])*1024*1024;
       buf = new char[sz];
-      for (j = 0; j < sz; j++) 
+      for (memory_size_type j = 0; j < sz; j++) 
 	// buf[j] = (j <= 64000000 ? j % 128: buf[int((random()/MAX_RANDOM)*64000000)]);
         buf[j] = j % 128;
       delete [] buf;
@@ -407,7 +407,7 @@ int main(int argc, char **argv) {
     }
 
     for (i = 0; i < point_count; i++) {
-      for (j = 0; j < DIM; j++)
+		for (memory_size_type j = 0; j < DIM; j++)
 		  p[j] = COORDT((tpie::random()/MAX_RANDOM) * (hip[j] - lop[j] - side_length[j]))
 	  + lop[j];
       for (int j = 0; j < DIM; j++)
@@ -467,7 +467,7 @@ int main(int argc, char **argv) {
     for (i = 0; i < point_count; i++) {
       switch (distribution) {
       case UNIFORM:
-	for (j = 0; j < DIM; j++)
+		  for (memory_size_type j = 0; j < DIM; j++)
 		p[j] = COORDT((tpie::random()/MAX_RANDOM) * (hip[j] - lop[j])) + lop[j];
 	break;
       case DIAGONAL:

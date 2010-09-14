@@ -107,8 +107,6 @@ set (OTHER_HEADERS
   packed_array.h
   persist.h
   portability.h
-  pq_internal_heap.h
-  pq_internal_heap.inl
   pq_merge_heap.h
   pq_merge_heap.inl
   pq_overflow_heap.h

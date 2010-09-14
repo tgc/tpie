@@ -21,8 +21,8 @@
 #define __TPIE_UTIL_H__
 
 #include <tpie/types.h>
-#include <tpie/portability.h>
 #include <cmath>
+#include <string>
 namespace tpie {
 
 ///////////////////////////////////////////////////////////////////////////
@@ -58,7 +58,7 @@ struct linear_memory_base {
 	// \param size The number of elements to support
 	// \return The abount of memory required in bytes
 	///////////////////////////////////////////////////////////////////////////
-	inline static offset_type memory_usage(offset_type size) {
+	inline static stream_size_type memory_usage(stream_size_type size) {
 		return floor( size * child_t::memory_coefficient() + child_t::memory_overhead() );
 	}
 
@@ -68,7 +68,7 @@ struct linear_memory_base {
 	// \param memory The number of bytes the structure is allowed to occupie
 	// \return The number of elements that will fit in the structure
 	///////////////////////////////////////////////////////////////////////////
-	inline static size_type memory_fits(size_type memory) {
+	inline static memory_size_type memory_fits(memory_size_type memory) {
 		return floor( (memory - child_t::memory_overhead()) / child_t::memory_coefficient() );
 	}
 };

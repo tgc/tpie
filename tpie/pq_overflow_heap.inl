@@ -47,7 +47,7 @@ inline const T& pq_overflow_heap<T, Comparator>::top() {
 
 template<typename T, typename Comparator>
 inline memory_size_type pq_overflow_heap<T, Comparator>::size() const {
-	return h->size();
+	return h.size();
 }
 
 template<typename T, typename Comparator>
