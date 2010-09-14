@@ -150,24 +150,24 @@ public:
     /// (if that happens, the log file contains more information). No items 
     /// should be read from or written to an invalid stream.
     ////////////////////////////////////////////////////////////////////////////
-    stream_status status() const { 
-	return m_status; 
+    inline stream_status status() const { 
+		return m_status; 
     }
     
     ////////////////////////////////////////////////////////////////////////////
     /// Returns wether the status of the stream is STREAM_STATUS_VALID.
     /// \sa status()
     ////////////////////////////////////////////////////////////////////////////
-    bool is_valid() const { 
-	return m_status == STREAM_STATUS_VALID; 
+    inline bool is_valid() const { 
+		return m_status == STREAM_STATUS_VALID; 
     }
 
     ////////////////////////////////////////////////////////////////////////////
     /// Returns true if the block's status is not BLOCK_STATUS_VALID. 
     /// \sa is_valid(), status()
     ////////////////////////////////////////////////////////////////////////////
-    bool operator!() const { 
-	return !is_valid(); 
+    inline bool operator!() const { 
+		return !is_valid(); 
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -177,14 +177,14 @@ public:
     /// If the ``current item'' pointer is beyond the last item in the stream,
     /// ERROR_END_OF_STREAM is returned
     ////////////////////////////////////////////////////////////////////////////
-    err read_item(T **elt);
+    inline err read_item(T **elt);
     
     ////////////////////////////////////////////////////////////////////////////
     /// Writes elt to the stream in the current position. Advance the 
     /// "current item" pointer to the next item. If no error has occurred
     /// \ref NO_ERROR is returned.
     ////////////////////////////////////////////////////////////////////////////
-    err write_item(const T &elt);
+    inline err write_item(const T &elt);
   
     ////////////////////////////////////////////////////////////////////////////
     /// Reads *len items from the current position of the stream into
@@ -211,25 +211,25 @@ public:
     ////////////////////////////////////////////////////////////////////////////
     /// Returns the number of items in the stream.
     ////////////////////////////////////////////////////////////////////////////
-    stream_offset_type stream_len(void) const { 
+    inline stream_offset_type stream_len(void) const { 
 		return m_stream.size();
     }
   
     ////////////////////////////////////////////////////////////////////////////
     /// Returns the path name of this stream in newly allocated space.
     ////////////////////////////////////////////////////////////////////////////
-    std::string name() const;
+    inline std::string name() const;
   
     ////////////////////////////////////////////////////////////////////////////
     /// Move the current position to off (measured in terms of items.
     ////////////////////////////////////////////////////////////////////////////
-    err seek(stream_offset_type offset);
+    inline err seek(stream_offset_type offset);
     
     ////////////////////////////////////////////////////////////////////////////
     /// Returns the current position in the stream measured of items from the
     /// beginning of the stream.
     ////////////////////////////////////////////////////////////////////////////
-    stream_offset_type tell() const { 
+    inline stream_offset_type tell() const { 
 		return m_stream.offset(); 
     }
 
@@ -242,7 +242,7 @@ public:
     /// specified number of objects. In either case, the "current
     /// item" pointer will be moved to the new end of the stream.
     ////////////////////////////////////////////////////////////////////////////
-    err truncate(stream_offset_type offset);
+    inline err truncate(stream_offset_type offset);
     
     ////////////////////////////////////////////////////////////////////////////
     /// This function is used for obtaining the amount of main memory used by an
@@ -431,17 +431,18 @@ private:
 	    // *sub_stream = ami_ss;
     
 	    // return retval;
+		return BTE_ERROR;
 	}
 
 
 	template<class T>
-	std::string stream<T>::name() const {
+	inline std::string stream<T>::name() const {
 		return m_stream.path();
 	}
 
 // Move to a specific offset.
 	template<class T>
-	err stream<T>::seek(stream_offset_type offset) {
+	inline err stream<T>::seek(stream_offset_type offset) {
 		try {
 			m_stream.seek(offset);
 		} catch(const stream_exception & e) {
@@ -453,7 +454,7 @@ private:
 
 // Truncate
 	template<class T>
-	err stream<T>::truncate(stream_offset_type offset) {
+	inline err stream<T>::truncate(stream_offset_type offset) {
 		try {
 			m_stream.truncate(offset);
 		} catch(const stream_exception & e) {
@@ -492,7 +493,7 @@ memory_size_type stream<T>::memory_usage(memory_size_type count) {
 	}
 
 	template<class T>
-	err stream<T>::read_item(T **elt) {
+	inline err stream<T>::read_item(T **elt) {
 		try {
 			*elt = &m_stream.read_mutable();
 		} catch(const end_of_stream_exception & e) {
@@ -506,7 +507,7 @@ memory_size_type stream<T>::memory_usage(memory_size_type count) {
 	}
 
 	template<class T>
-	err stream<T>::write_item(const T &elt) {
+	inline err stream<T>::write_item(const T &elt) {
 		try {
 			m_stream.write(elt); 
 		} catch(const stream_exception & e) {
