@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 	std::cout << "Queue size = " << queue.size() << std::endl;
     }
     
-    stream_offset_type *jj;
+    const stream_offset_type *jj;
     stream_offset_type last;
     stream_offset_type read = 0;
 
