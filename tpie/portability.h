@@ -968,48 +968,46 @@ void * operator new(\
 
 #ifdef TPIE_DEPRECATED_WARNINGS
 #ifdef __GNUC__
-#define DEPRECATED(func) func __attribute__ ((deprecated))
+#define TPIE_DEPRECATED(func) func __attribute__ ((deprecated))
 #elif defined(_MSC_VER)
-#define DEPRECATED(func) __declspec(deprecated) func
+#define TPIE_DEPRECATED(func) __declspec(deprecated) func
 #else
-#define DEPRECATED(func) func
+#define TPIE_DEPRECATED(func) func
 #endif
 #else
-#define DEPRECATED(func) func
+#define TPIE_DEPRECATED(func) func
 #endif
 
-DEPRECATED(bool TPIE_OS_EXISTS(const std::string & path));
+TPIE_DEPRECATED(bool TPIE_OS_EXISTS(const std::string & path));
 inline bool TPIE_OS_EXISTS(const std::string & path) {
 	return tpie::file_exists(path);
 }
 
-DEPRECATED(bool TPIE_OS_UNLINK(const std::string & path));
+TPIE_DEPRECATED(bool TPIE_OS_UNLINK(const std::string & path));
 inline bool TPIE_OS_UNLINK(const std::string & path) {
 	return tpie::remove(path),true;
 }
 
-DEPRECATED(void TPIE_OS_SRANDOM(unsigned int seed));
+TPIE_DEPRECATED(void TPIE_OS_SRANDOM(unsigned int seed));
 inline void TPIE_OS_SRANDOM(unsigned int seed) {
 	tpie::seed_random(seed);
 }
 
-DEPRECATED(tpie::uint32_t TPIE_OS_RANDOM());
+TPIE_DEPRECATED(tpie::uint32_t TPIE_OS_RANDOM());
 inline tpie::uint32_t TPIE_OS_RANDOM() {
 	return tpie::random();
 }
 
-DEPRECATED(typedef tpie::stream_offset_type TPIE_OS_OFFSET);
-DEPRECATED(typedef tpie::memory_offset_type TPIE_OS_SSIZE_T);
-DEPRECATED(typedef tpie::memory_size_type TPIE_OS_SIZE_T);
-DEPRECATED(typedef tpie::stream_size_type TPIE_OS_OUTPUT_SIZE_T);
-DEPRECATED(typedef tpie::int64_t TPIE_OS_LONGLONG);
-DEPRECATED(typedef tpie::int32_t TPIE_OS_LONG);
+TPIE_DEPRECATED(typedef tpie::stream_offset_type TPIE_OS_OFFSET);
+TPIE_DEPRECATED(typedef tpie::memory_offset_type TPIE_OS_SSIZE_T);
+TPIE_DEPRECATED(typedef tpie::memory_size_type TPIE_OS_SIZE_T);
+TPIE_DEPRECATED(typedef tpie::stream_size_type TPIE_OS_OUTPUT_SIZE_T);
+TPIE_DEPRECATED(typedef tpie::int64_t TPIE_OS_LONGLONG);
+TPIE_DEPRECATED(typedef tpie::int32_t TPIE_OS_LONG);
 namespace tpie {
-	DEPRECATED(typedef tpie::memory_size_type size_type);
-	DEPRECATED(typedef tpie::stream_offset_type offset_type);
+	TPIE_DEPRECATED(typedef tpie::memory_size_type size_type);
+	TPIE_DEPRECATED(typedef tpie::stream_offset_type offset_type);
 }
-
-#undef DEPRECATED
 
 #endif // _portability_H
 #endif //_TPIE_PORTABILITY_H
