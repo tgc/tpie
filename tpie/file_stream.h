@@ -259,12 +259,11 @@ public:
 	/// \returns The amount of memory maximaly used by the count file_streams
 	/////////////////////////////////////////////////////////////////////////
 	inline static memory_size_type memory_usage(
-		memory_size_type count=1, 
 		float blockFactor=1.0,
 		bool includeDefaultFileAccessor=true) throw() {
-		return file_type::memory_usage(count, includeDefaultFileAccessor) 
-			+ stream_type::memory_usage(count, blockFactor) 
-			+ sizeof(file_stream)*count;
+		return file_type::memory_usage(includeDefaultFileAccessor) 
+			+ stream_type::memory_usage(blockFactor) 
+			+ sizeof(file_stream);
 	}
 
 	//////////////////////////////////////////////////////////////////////////

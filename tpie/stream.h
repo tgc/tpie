@@ -478,7 +478,7 @@ memory_size_type stream<T>::memory_usage(memory_size_type count) {
 
 	    switch (usage_type) {
 	    case mem::STREAM_USAGE_OVERHEAD:
-			*usage = sizeof(*this) + file_stream<T>::memory_usage(1, 0.0, 1);
+			*usage = sizeof(*this) + file_stream<T>::memory_usage(0.0);
 			return NO_ERROR;
 	    case mem::STREAM_USAGE_CURRENT:
 	    case mem::STREAM_USAGE_MAXIMUM:
@@ -486,7 +486,7 @@ memory_size_type stream<T>::memory_usage(memory_size_type count) {
 			*usage =  memory_usage(1);
 			return NO_ERROR;
 	    case mem::STREAM_USAGE_BUFFER:
-			*usage = file_stream<T>::memory_usage(1, 1.0, 1) - file_stream<T>::memory_usage(1, 0.0, 1); 
+			*usage = file_stream<T>::memory_usage(1.0) - file_stream<T>::memory_usage(0.0); 
 			return NO_ERROR;
 		}
 		return BTE_ERROR;

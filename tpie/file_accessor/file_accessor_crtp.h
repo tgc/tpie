@@ -41,7 +41,7 @@ public:
 	virtual void write(const void * data, stream_size_type offset, memory_size_type size);
 	virtual void read_user_data(void * data);
 	virtual void write_user_data(const void * data);
-	static inline memory_size_type memory_usage(memory_size_type count) {return sizeof(child_t) * count;}
+	static inline memory_size_type memory_usage() {return sizeof(child_t);}
 };
 	
 }
