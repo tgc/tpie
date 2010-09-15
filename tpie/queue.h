@@ -30,6 +30,7 @@
 #include <tpie/tempname.h>
 #include <tpie/file.h>
 #include <limits>
+#include <tpie/persist.h>
 namespace tpie {
 
 ///////////////////////////////////////////////////////////////////
@@ -113,6 +114,12 @@ public:
 			+ file<T>::memory_usage() - sizeof(file<T>)
 			+ 2*file<T>::stream::memory_usage(blockFactor) - 2*sizeof(file<T>::stream);
 	}
+
+	////////////////////////////////////////////////////////////////////
+	/// Set the persistence status of the (stacks underlying the) queue.
+	/// \param p A persistence status.
+	////////////////////////////////////////////////////////////////////
+	TPIE_DEPRECATED(void persist(persistence p));
 private:
 	temp_file m_temp;
 	stream_size_type m_size;
@@ -123,8 +130,14 @@ private:
 
 
 template<class T>
+void queue<T>::persist(persistence p) {
+	m_temp.set_persistent(p != PERSIST_DELETE);
+}
+
+template<class T>
 queue<T>::queue(const std::string& basename, double blockFactor): 
-	m_size(0), m_file(blockFactor), m_front(m_file), m_back(m_file) {
+	m_temp(basename), m_size(0), m_file(blockFactor), m_front(m_file), m_back(m_file) {
+	m_temp.set_persistent(true);
 	m_file.open(basename, file_base::read_write, sizeof(stream_size_type) );
 	if (m_file.size() != 0) {
 		stream_size_type t;
