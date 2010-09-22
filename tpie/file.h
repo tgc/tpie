@@ -124,8 +124,8 @@ public:
 	/// Note all streams into the will must be freed, before you call close
 	/////////////////////////////////////////////////////////////////////////
 	inline void close() throw(stream_exception) {
+		if (m_open) m_fileAccessor->close();
 		m_open = false;
-		m_fileAccessor->close();
 	}
 
 	/////////////////////////////////////////////////////////////////////////

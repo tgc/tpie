@@ -366,8 +366,7 @@ private:
 // location specified by the path name.
 	template<class T>
 	stream<T>::stream(const std::string& path_name, stream_type st) :
-		m_status(STREAM_STATUS_INVALID) {
-		m_temp.set_persistent(true);
+		m_temp(path_name, true), m_status(STREAM_STATUS_INVALID) {
 		try {
 			m_stream.open( path_name, st==READ_STREAM ? file_base::read: file_base::read_write);
 			if (st == APPEND_STREAM) m_stream.seek(0, file_base::end);

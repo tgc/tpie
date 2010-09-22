@@ -77,7 +77,7 @@ public:
 	/////////////////////////////////////////////////////////////////////////
 	inline void open(file_base::access_type accessType=file_base::read_write,
 					 memory_size_type user_data_size=0) throw (stream_exception) {
-		m_file.open(m_temp.path(), accessType, user_data_size);
+		open(m_temp.path(), accessType, user_data_size);
 	}
 
 	/////////////////////////////////////////////////////////////////////////

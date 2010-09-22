@@ -174,7 +174,7 @@ const std::string& tempname::get_default_extension() {
 
 temp_file::temp_file(): m_persist(false) {}
 
-temp_file::temp_file(const std::string & path): m_path(path), m_persist(false) {}
+temp_file::temp_file(const std::string & path, bool persist): m_path(path), m_persist(persist) {}
 
 const std::string & temp_file::path() {
 	if (m_path.empty())
