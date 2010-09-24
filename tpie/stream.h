@@ -458,7 +458,7 @@ private:
 		try {
 			m_stream.truncate(offset);
 		} catch(const stream_exception & e) {
-			TP_LOG_WARNING_ID("BTE error - truncate failed");
+			TP_LOG_WARNING_ID("BTE error - truncate failed" << e.what());
 			return BTE_ERROR;
 		}
 	    return NO_ERROR;
@@ -497,7 +497,7 @@ memory_size_type stream<T>::memory_usage(memory_size_type count) {
 		try {
 			*elt = &m_stream.read_mutable();
 		} catch(const end_of_stream_exception & e) {
-			TP_LOG_DEBUG_ID("eos in read_item");
+			//TP_LOG_DEBUG_ID("eos in read_item");
 			return END_OF_STREAM;
 		} catch(const stream_exception & e) {
 			TP_LOG_DEBUG_ID("bte error in read_item");

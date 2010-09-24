@@ -68,7 +68,7 @@ public:
 					 file_base::access_type accessType=file_base::read_write,
 					 memory_size_type user_data_size=0) throw (stream_exception) {
 		m_file.open(path, accessType, user_data_size);
-		m_stream.seek(0);
+		m_stream.initialize();
 	}
 
 	/////////////////////////////////////////////////////////////////////////
@@ -226,9 +226,11 @@ public:
 	/// seeked back if it is beond the new end of the file. 
 	/////////////////////////////////////////////////////////////////////////
 	inline void truncate(stream_size_type size) {
-		if (offset() > size) 
-			seek(size);
+		stream_size_type o=offset();
+		//TODO flush current block here
 		m_file.truncate(size);
+		m_stream.initialize();
+		m_stream.seek(std::min(o, size));
 	}
 
 	////////////////////////////////////////////////////////////////////////////////

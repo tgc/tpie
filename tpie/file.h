@@ -182,6 +182,7 @@ public:
 
 		void update_block();
 		inline memory_size_type block_items() const {return m_file.m_blockItems;}
+		
 		inline void write_update() {
 			m_block->dirty = true;
 			m_block->size = std::max(m_block->size, m_index);
@@ -267,6 +268,14 @@ public:
 				return m_block->number != 0;
 			else
 				return true;
+		}
+
+		inline void initialize() {
+			if (m_block != &m_file.m_emptyBlock) m_file.free_block(m_block);
+			m_nextBlock = std::numeric_limits<stream_size_type>::max();
+			m_nextIndex = std::numeric_limits<memory_size_type>::max();
+			m_index = std::numeric_limits<memory_size_type>::max();;
+			m_block = &m_file.m_emptyBlock;
 		}
 	};
 
