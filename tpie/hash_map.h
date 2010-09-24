@@ -259,8 +259,8 @@ private:
  		inline const data_t & value() const {return tbl.get(cur)->second;}
  		inline const value_t & operator*() const {return tbl.get(cur);}
  		inline const value_t * operator->() const {return &tbl.get(cur);}
- 		inline bool operator==(iter_base & o) const {return o.cur == cur;}
- 		inline bool operator!=(iter_base & o) const {return o.cur != cur;}
+ 		inline bool operator==(const iter_base & o) const {return o.cur == cur;}
+ 		inline bool operator!=(const iter_base & o) const {return o.cur != cur;}
  		inline void operator++() {
  			while (cur != tbl.end()) {
  				++cur;
@@ -360,8 +360,8 @@ private:
  	public:
  		inline const value_t & operator*() const {return tbl.get(cur);}
  		inline const value_t * operator->() const {return &tbl.get(cur);}
- 		inline bool operator==(iter_base & o) const {return o.cur == cur;}
- 		inline bool operator!=(iter_base & o) const {return o.cur != cur;}
+ 		inline bool operator==(const iter_base & o) const {return o.cur == cur;}
+ 		inline bool operator!=(const iter_base & o) const {return o.cur != cur;}
  		inline void operator++() {
  			while (cur != tbl.end()) {
  				++cur;

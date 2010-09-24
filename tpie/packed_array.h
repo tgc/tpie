@@ -405,6 +405,20 @@ public:
 	inline const_reverse_iterator rbegin() const {return const_reverse_iterator(m_elements-1, perword()+m_size-1);}
 	inline reverse_iterator rend() {return reverse_iterator(m_elements-1, perword()-1);}
 	inline const_reverse_iterator rend() const {return const_reverse_iterator(m_elements-1, perword()-1);}
+	
+	/////////////////////////////////////////////////////////
+	/// \brief Compare two arrays
+	///
+	/// \return true iff they are equal
+	/////////////////////////////////////////////////////////
+	bool operator==(const packed_array &other)const{
+		if(m_size != other.m_size) return false;
+		for (size_t i=0; i < words(m_size); ++i)
+			if(m_elements[i] != other.m_elements[i]) return false;
+		return true;
+	}
+			   
+	
 };
 
 }
