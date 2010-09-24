@@ -74,6 +74,7 @@ int main(int argc, char **argv)
     const stream_offset_type *jj;
     stream_offset_type last;
     stream_offset_type read = 0;
+
     stack.pop(&jj);
     last = *jj;
     

@@ -134,7 +134,7 @@ void tempname::set_default_path(const std::string&  path, const std::string& sub
 		default_path = path;
 		return;
 	}
-	std::string p = path+"/"+subdir;
+	std::string p = path+TPIE_OS_DIR_DELIMITER+subdir;
 	try {
 		if (!boost::filesystem::exists(p)) {
 			boost::filesystem::create_directory(p);

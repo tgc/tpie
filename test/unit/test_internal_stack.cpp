@@ -18,45 +18,40 @@
 // along with TPIE.  If not, see <http://www.gnu.org/licenses/>
 
 #include "common.h"
-#include <tpie/disjoint_sets.h>
-#include <iostream>
+
+#include <tpie/internal_stack.h>
 
 using namespace tpie;
-using namespace std;
-
-#define DIE(msg) {std::cerr << msg << std::endl; return false;}
 
 bool basic_test() {
-	disjoint_sets<int> s1(307);
-	for (int i=0; i < 307; ++i) {
-		if (s1.is_set(i)) DIE("is_set failed");
-		s1.make_set(i);
-		if (!s1.is_set(i)) DIE("is_set failed");
-		if (s1.count_sets() != (size_t)i+1) DIE("count_sets faild");
+	internal_stack<int> s(52);
+	for(size_t i=0; i < 52; ++i)
+		s.push((i * 104729) % 2251);
+	for(int i=51; i >= 0; --i) {
+		if (s.size() != (size_t)i+1) return false;
+		if (s.top() != ((int)i * 104729) % 2251) return false;
+		s.pop();
 	}
-
-	for (int i=1; i < 307; ++i) {
-		s1.union_set(i-1, i);
-		if (s1.find_set(i-1) != s1.find_set(i)) DIE("find_set failed");
-		if (s1.count_sets() != size_t(307-i)) DIE("count_sets failed");
- 	}
+	if (!s.empty()) return false;
 	return true;
 }
 
-class disjointsets_memory_test: public memory_test {
+class stack_memory_test: public memory_test {
 public:
-	disjoint_sets<int> * a;
-	virtual void alloc() {a = new disjoint_sets<int>(123456);}
+	internal_stack<int> * a;
+	virtual void alloc() {a = new internal_stack<int>(123456);}
 	virtual void free() {delete a;}
-	virtual size_type claimed_size() {return disjoint_sets<int>::memory_usage(123456);}
+	virtual size_type claimed_size() {return internal_stack<int>::memory_usage(123456);}
 };
 
 int main(int argc, char **argv) {
 	if(argc != 2) return 1;
 	std::string test(argv[1]);
 	if (test == "basic")
-		 return basic_test()?EXIT_SUCCESS:EXIT_FAILURE;
+		return basic_test()?EXIT_SUCCESS:EXIT_FAILURE;
 	else if (test == "memory") 
-		return disjointsets_memory_test()()?EXIT_SUCCESS:EXIT_FAILURE;
+		return stack_memory_test()()?EXIT_SUCCESS:EXIT_FAILURE;
 	return EXIT_FAILURE;
 }
+
+

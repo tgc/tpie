@@ -16,8 +16,8 @@
 // 
 // You should have received a copy of the GNU Lesser General Public License
 // along with TPIE.  If not, see <http://www.gnu.org/licenses/>
-#ifndef __TPIE_SIMPLEQUEUE_H_
-#define __TPIE_SIMPLEQUEUE_H_
+#ifndef __TPIE_INTERNAL_QUEUE_H__
+#define __TPIE_INTERNAL_QUEUE_H__
 
 ///////////////////////////////////////////////////////////////////////////
 /// \file internal_queue.h
@@ -113,4 +113,5 @@ public:
 };
 
 }
-#endif //__TERRASTREAM_SIMPLEQUEUE_H_
+#endif //__TPIE_INTERNAL_QUEUE_H__
+
