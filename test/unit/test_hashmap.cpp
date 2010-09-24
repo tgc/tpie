@@ -30,9 +30,9 @@ using namespace std;
 using namespace boost::posix_time;
 
 
-template <template <typename value_t, typename hash_t, typename equal_t> class table_t>
+template <template <typename value_t, typename hash_t, typename equal_t, typename index_t> class table_t>
 bool basic_test() {
-	hash_map<int, char, hash<int>, std::equal_to<int>,  table_t> q1(200);
+	hash_map<int, char, hash<int>, std::equal_to<int>, size_t, table_t> q1(200);
 	map<int, char> q2;
 	boost::rand48 prng(42);
 	for(int i=0; i < 100; ++i) {
@@ -90,10 +90,10 @@ struct identity_gen {
 
 
 template <typename gen_t, 
-		  template <typename value_t, typename hash_t, typename equal_t> class table_t>
+		  template <typename value_t, typename hash_t, typename equal_t, typename index_t> class table_t>
 void test_speed() {
 	ptime s1 = microsec_clock::universal_time();
-	hash_map<int, char, hash<size_t>, std::equal_to<size_t>,  table_t> q1(gen_t::cnt());
+	hash_map<int, char, hash<size_t>, std::equal_to<size_t>, size_t, table_t> q1(gen_t::cnt());
 	{
 		for(int i=0; i < gen_t::cnt();++i) {
 			q1[gen_t::key(i)] = gen_t::value(i);
@@ -137,6 +137,25 @@ void test_speed() {
 	std::cout << "Delete speedup: " << (double)(s3 - s2).total_milliseconds() / (double)(s2 - s1).total_milliseconds() << std::endl;
 }
 
+bool iterator_test() {
+	hash_map<int, char> m(20);
+	vector< std::pair<int,char> > d;
+	vector< std::pair<int,char> > r;
+	
+	d.push_back(make_pair(5,'c'));
+	d.push_back(make_pair(7,'a'));
+	d.push_back(make_pair(4,'k'));
+	d.push_back(make_pair(9,'e'));
+	d.push_back(make_pair(10,'x'));
+	for(size_t i=0; i < d.size(); ++i) m.insert(d[i].first, d[i].second);
+	for(hash_map<int, char>::iterator i=m.begin(); i != m.end(); ++i) 
+		r.push_back(*i);
+	sort(d.begin(), d.end());
+	sort(r.begin(), r.end());
+	if (r != d) return false;
+	return true;
+}
+
 class hashmap_memory_test: public memory_test {
 public:
 	hash_map<int, char> * a;
@@ -164,8 +183,8 @@ int main(int argc, char **argv) {
 		test_speed<identity_gen, chaining_hash_table>();
 		exit(EXIT_SUCCESS);
 	}
-	//else if (test == "iterators") 
-	//	return iterator_test()?EXIT_SUCCESS:EXIT_FAILURE;
+	else if (test == "iterators") 
+		return iterator_test()?EXIT_SUCCESS:EXIT_FAILURE;
 	else if (test == "memory") 
 		return hashmap_memory_test()()?EXIT_SUCCESS:EXIT_FAILURE;
 	std::cerr << "No such test" << std::endl;

@@ -182,6 +182,7 @@ public:
 
 		void update_block();
 		inline memory_size_type block_items() const {return m_file.m_blockItems;}
+		
 		inline void write_update() {
 			m_block->dirty = true;
 			m_block->size = std::max(m_block->size, m_index);
@@ -268,6 +269,14 @@ public:
 			else
 				return true;
 		}
+
+		inline void initialize() {
+			if (m_block != &m_file.m_emptyBlock) m_file.free_block(m_block);
+			m_nextBlock = std::numeric_limits<stream_size_type>::max();
+			m_nextIndex = std::numeric_limits<memory_size_type>::max();
+			m_index = std::numeric_limits<memory_size_type>::max();;
+			m_block = &m_file.m_emptyBlock;
+		}
 	};
 
 	void truncate(stream_size_type s) throw(stream_exception) {
@@ -312,10 +321,10 @@ class file: public file_base {
 public:
  	typedef T item_type;
 
-	static inline memory_size_type memory_usage(memory_size_type count=1, bool includeDefaultFileAccessor=true) {
-		memory_size_type x = sizeof(file) * count;
+	static inline memory_size_type memory_usage(bool includeDefaultFileAccessor=true) {
+		memory_size_type x = sizeof(file);
 		if (includeDefaultFileAccessor)
-			x += MM_manager.space_overhead()*count + default_file_accessor::memory_usage(count);
+			x += MM_manager.space_overhead() + default_file_accessor::memory_usage();
 		return x;
 	}
 
@@ -330,8 +339,8 @@ public:
 	private:
 		typedef typename file::block_t block_t;
 	public:
-		inline static memory_size_type memory_usage(memory_size_type count=1, double blockFactor=1.0) {
-			return (sizeof(stream) + block_size(blockFactor) +  MM_manager.space_overhead() + sizeof(block_t)) * count;
+		inline static memory_size_type memory_usage(double blockFactor=1.0) {
+			return sizeof(stream) + block_size(blockFactor) +  MM_manager.space_overhead() + sizeof(block_t);
 		}
 
 		stream(file_type & file, stream_size_type offset=0):

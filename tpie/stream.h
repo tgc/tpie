@@ -458,7 +458,7 @@ private:
 		try {
 			m_stream.truncate(offset);
 		} catch(const stream_exception & e) {
-			TP_LOG_WARNING_ID("BTE error - truncate failed");
+			TP_LOG_WARNING_ID("BTE error - truncate failed" << e.what());
 			return BTE_ERROR;
 		}
 	    return NO_ERROR;
@@ -478,7 +478,7 @@ memory_size_type stream<T>::memory_usage(memory_size_type count) {
 
 	    switch (usage_type) {
 	    case mem::STREAM_USAGE_OVERHEAD:
-			*usage = sizeof(*this) + file_stream<T>::memory_usage(1, 0.0, 1);
+			*usage = sizeof(*this) + file_stream<T>::memory_usage(0.0);
 			return NO_ERROR;
 	    case mem::STREAM_USAGE_CURRENT:
 	    case mem::STREAM_USAGE_MAXIMUM:
@@ -486,7 +486,7 @@ memory_size_type stream<T>::memory_usage(memory_size_type count) {
 			*usage =  memory_usage(1);
 			return NO_ERROR;
 	    case mem::STREAM_USAGE_BUFFER:
-			*usage = file_stream<T>::memory_usage(1, 1.0, 1) - file_stream<T>::memory_usage(1, 0.0, 1); 
+			*usage = file_stream<T>::memory_usage(1.0) - file_stream<T>::memory_usage(0.0); 
 			return NO_ERROR;
 		}
 		return BTE_ERROR;
@@ -497,7 +497,7 @@ memory_size_type stream<T>::memory_usage(memory_size_type count) {
 		try {
 			*elt = &m_stream.read_mutable();
 		} catch(const end_of_stream_exception & e) {
-			TP_LOG_DEBUG_ID("eos in read_item");
+			//TP_LOG_DEBUG_ID("eos in read_item");
 			return END_OF_STREAM;
 		} catch(const stream_exception & e) {
 			TP_LOG_DEBUG_ID("bte error in read_item");
