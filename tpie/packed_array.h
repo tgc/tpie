@@ -37,14 +37,15 @@ namespace tpie {
 template <typename CT, bool forward, typename RT>
 class packed_array_iter_facade {
 private:
-	const CT & self() const {return *reinterpret_cast<const CT*>(this);}
 	CT & self() {return *reinterpret_cast<CT*>(this);}
 	template <typename, bool, typename> friend class packed_array_iter_facade;
 
-	friend CT operator+(ptrdiff_t, packed_array_iter_facade);
-public:
+	//friend CT operator+(ptrdiff_t, packed_array_iter_facade);
+public:	
 	typedef ptrdiff_t difference_type;
 	typedef std::random_access_iterator_tag iterator_category;
+	const CT & self() const {return *reinterpret_cast<const CT*>(this);}
+
 	template <typename TT>
 	inline bool operator==(const TT & o) const {return self().index() == o.self().index();}
 	template <typename TT>
