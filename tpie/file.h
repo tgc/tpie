@@ -29,7 +29,7 @@
 
 namespace tpie {
 
-typedef tpie::file_accessor::posix default_file_accessor;
+typedef tpie::file_accessor::stdio default_file_accessor;
 
 class file_base {
 protected:
