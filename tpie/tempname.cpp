@@ -182,7 +182,18 @@ const std::string & temp_file::path() {
 	return m_path;
 }
 
+void temp_file::set_path(const std::string & path, bool persist) {
+	free();
+	m_path=path;
+	m_persist=persist;
+}
+
 temp_file::~temp_file() {
+	free();
+}
+
+void temp_file::free() {
 	if (!m_path.empty() && !m_persist && file_exists(m_path)) 
 		remove(m_path);
+	m_path="";
 }
