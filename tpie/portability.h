@@ -829,7 +829,7 @@ inline int TPIE_OS_TRUNCATE(FILE* file, const std::string& /* path */, tpie::str
 //	DWORD x = SetFilePointer(fd.FileHandle,getLowOrderOff(offset),&highOrderOff, FILE_BEGIN);
 //	return SetEndOfFile(fd.FileHandle);
 	long loffset = static_cast<long>(offset);
-	if (offset > TPIE_OS_OFFSET(std::numeric_limits<long>::max()) || loffset < 0) {
+	if (offset > tpie::stream_offset_type(std::numeric_limits<long>::max()) || loffset < 0) {
 		std::stringstream ss;
 		ss << "Truncat offset " << offset << " too big (or negative.)";
 		throw std::runtime_error(ss.str());

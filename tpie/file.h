@@ -19,11 +19,18 @@
 #ifndef _TPIE_FILE_H
 #define _TPIE_FILE_H
 
+#ifdef _MSC_VER
+//Yes we know you do not support throw(stream_exception)
+#pragma warning( disable: 4290 ) 
+#endif //_MSC_VER
+
 #include <limits>
 #include <tpie/exception.h>
 #include <tpie/file_accessor/file_accessor.h>
 #include <tpie/file_accessor/stdio.h>
+#ifndef WIN32
 #include <tpie/file_accessor/posix.h>
+#endif
 #include <tpie/mm_base.h>
 #include <tpie/mm_manager.h>
 

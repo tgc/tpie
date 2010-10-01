@@ -526,7 +526,9 @@ memory_size_type stream<T>::memory_usage(memory_size_type count) {
 
 	template<class T>
 	err stream<T>::read_array(T *mm_space, memory_size_type & len) {
-		memory_size_type l = std::min(len, m_stream.size() - m_stream.offset());
+		memory_size_type l = std::min(
+			static_cast<stream_size_type>(len), 
+			static_cast<stream_size_type>(m_stream.size() - m_stream.offset()));
 		try {
 			m_stream.read(mm_space, mm_space+l);
 		} catch(const stream_exception & e) {

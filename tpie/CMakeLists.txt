@@ -71,15 +71,14 @@ set (STREAM_SOURCES
 #  stream/stdio_bte.cpp
    file_accessor/file_accessor.cpp
    file_accessor/stdio.cpp
-   file_accessor/posix.cpp
    file_base.cpp
   )
 
 if (WIN32)
   
 else(WIN32)
-#  set (STREAM_SOURCES ${STREAM_SOURCES} stream/posix_bte.cpp)
-#  set (STREAM_HEADERS ${STREAM_HEADERS} stream/posix_bte.h)
+set (STREAM_SOURCES ${STREAM_SOURCES} file_accessor/posix.cpp)
+set (STREAM_HEADERS ${STREAM_HEADERS} file_accessor/posix.h)
 endif(WIN32)
 
 set (OTHER_HEADERS
