@@ -60,6 +60,10 @@ public:
 		throw() : 
 		m_file(blockFactor, fileAccessor), m_stream(m_file, 0)  {};
 
+	inline ~file_stream() {
+		close();
+	}
+
 	/////////////////////////////////////////////////////////////////////////
 	/// \copydoc file_base::open
 	/// \sa file_base::open
@@ -71,14 +75,6 @@ public:
 		m_stream.initialize();
 	}
 
-	/////////////////////////////////////////////////////////////////////////
-	/// Open a new temporery file
-	/// \sa file_base::open
-	/////////////////////////////////////////////////////////////////////////
-	inline void open(file_base::access_type accessType=file_base::read_write,
-					 memory_size_type user_data_size=0) throw (stream_exception) {
-		open(m_temp.path(), accessType, user_data_size);
-	}
 
 	/////////////////////////////////////////////////////////////////////////
 	/// \copydoc file_base::read_user_data
@@ -288,7 +284,6 @@ public:
 private:
 	file_type m_file;
 	stream_type m_stream;
-	temp_file m_temp;
 };
 }
 

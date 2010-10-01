@@ -334,8 +334,8 @@ private:
     /** Restricted assignment operator*/
     stream<T>& operator=(const stream<T>& other);
 	
-	file_stream<T> m_stream;
 	temp_file m_temp;
+	file_stream<T> m_stream;
     
     /** Non-zero if we should destroy the bte stream when we the
      * AMI stream is destroyed. */
@@ -353,7 +353,7 @@ private:
 	    TP_LOG_DEBUG_ID( m_temp.path() );
 		try {
 			m_stream.open( m_temp.path() );
-		} catch(const stream_exception & e) {
+		} catch(const stream_exception &) {
 			TP_LOG_FATAL_ID("Open failed");
 			return;
 		}
@@ -370,7 +370,7 @@ private:
 		try {
 			m_stream.open( path_name, st==READ_STREAM ? file_base::read: file_base::read_write);
 			if (st == APPEND_STREAM) m_stream.seek(0, file_base::end);
-		} catch(const stream_exception & e) {
+		} catch(const stream_exception &) {
 			TP_LOG_FATAL_ID("Open failed");
 			return;
 		}
@@ -444,7 +444,7 @@ private:
 	inline err stream<T>::seek(stream_offset_type offset) {
 		try {
 			m_stream.seek(offset);
-		} catch(const stream_exception & e) {
+		} catch(const stream_exception &) {
 			TP_LOG_WARNING_ID("BTE error - seek failed");		
 			return BTE_ERROR;
 		}
@@ -495,10 +495,10 @@ memory_size_type stream<T>::memory_usage(memory_size_type count) {
 	inline err stream<T>::read_item(T **elt) {
 		try {
 			*elt = &m_stream.read_mutable();
-		} catch(const end_of_stream_exception & e) {
+		} catch(const end_of_stream_exception &) {
 			//TP_LOG_DEBUG_ID("eos in read_item");
 			return END_OF_STREAM;
-		} catch(const stream_exception & e) {
+		} catch(const stream_exception &) {
 			TP_LOG_DEBUG_ID("bte error in read_item");
 			return BTE_ERROR;
 		}
@@ -509,7 +509,7 @@ memory_size_type stream<T>::memory_usage(memory_size_type count) {
 	inline err stream<T>::write_item(const T &elt) {
 		try {
 			m_stream.write(elt); 
-		} catch(const stream_exception & e) {
+		} catch(const stream_exception &) {
 			TP_LOG_WARNING_ID("BTE error - write item failed");
 			return BTE_ERROR;
 	    }
@@ -526,12 +526,12 @@ memory_size_type stream<T>::memory_usage(memory_size_type count) {
 
 	template<class T>
 	err stream<T>::read_array(T *mm_space, memory_size_type & len) {
-		memory_size_type l = std::min(
+		memory_size_type l = static_cast<memory_size_type>(std::min(
 			static_cast<stream_size_type>(len), 
-			static_cast<stream_size_type>(m_stream.size() - m_stream.offset()));
+			static_cast<stream_size_type>(m_stream.size() - m_stream.offset())));
 		try {
 			m_stream.read(mm_space, mm_space+l);
-		} catch(const stream_exception & e) {
+		} catch(const stream_exception &) {
 			return BTE_ERROR;
 		}
 		return (l == len)?NO_ERROR:END_OF_STREAM;
@@ -541,7 +541,7 @@ memory_size_type stream<T>::memory_usage(memory_size_type count) {
 	err stream<T>::write_array(const T *mm_space, memory_size_type len) {
 		try {
 			m_stream.write(mm_space, mm_space+len);
-		} catch(const stream_exception & e) {
+		} catch(const stream_exception &) {
 			return BTE_ERROR;
 		}
 		return NO_ERROR;

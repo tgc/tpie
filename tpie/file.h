@@ -38,6 +38,10 @@ namespace tpie {
 
 typedef tpie::file_accessor::stdio default_file_accessor;
 
+#ifdef _MSC_VER
+#pragma warning( disable: 4200 )
+#endif //_MSC_VER
+
 class file_base {
 protected:
 	struct block_t {
@@ -89,7 +93,7 @@ public:
 	/// \returns Size in Bytes
 	////////////////////////////////////////////////////////////////////////////////
 	static inline memory_size_type block_size(double blockFactor) throw () {
-		return 2 * 1024*1024 * blockFactor;
+		return static_cast<memory_size_type>(2 * 1024*1024 * blockFactor);
 	}
 
 	static inline double calculate_block_factor(memory_size_type blockSize) throw () {
@@ -216,7 +220,7 @@ public:
 				throw io_exception("Tried to seek out of file");
 			update_vars();
 			stream_size_type b = static_cast<stream_size_type>(offset) / m_file.m_blockItems;
-			m_index = offset - b*m_file.m_blockItems;
+			m_index = static_cast<memory_size_type>(offset - b*m_file.m_blockItems);
 			if (b == m_block->number) {
 				m_nextBlock = std::numeric_limits<stream_size_type>::max();
 				m_nextIndex = std::numeric_limits<memory_size_type>::max();
