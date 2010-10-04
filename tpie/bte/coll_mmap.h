@@ -217,7 +217,7 @@ namespace tpie {
 	
 	    // The dirty parameter is not used in this implemetation.
 	
-	    if ((bid <= 0) || (bid >= header_.last_block)) {
+	    if ((bid <= 0) || (bid >= (BIDT)header_.last_block)) {
 
 		TP_LOG_FATAL_ID("Incorrect block ID in placeholder.");
 

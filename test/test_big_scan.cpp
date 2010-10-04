@@ -313,19 +313,11 @@ void get_app_info(int argc, char** argv, appInfo & Info){
 		break;
 	    case APP_OPTION_NUM_ITEMS:
 		tmp = ascii2longlong(optarg);
-		if(tmp < 0){
-		    std::cerr << "Invalid item count. Exiting...\n";
-		    exit(1);
-		}
-		else { Info.num_items=tmp; }
+		Info.num_items=tmp;
 		break;
 	    case APP_OPTION_FILE_SIZE:
 		tmp = ascii2longlong(optarg);
-		if(tmp < 0){
-		    std::cerr << "Invalid file size. Exiting...\n";
-		    exit(1);
-		}
-		else { Info.num_items=(tmp/Info.item_size)+1; }
+		Info.num_items=(tmp/Info.item_size)+1;
 		break;
 	    default:
 		std::cerr << "Warning: Unhandled option - " << optidx << std::endl;
@@ -474,7 +466,7 @@ void write_test(const std::string& fname, appInfo & info){
 	      << " items..." << std::endl;
   
     trunc_bytes=(static_cast<stream_offset_type>(sizeof (x)))*n;
-    if(trunc_bytes<0 || trunc_bytes>(4*APP_GIG)){
+    if(trunc_bytes<0 || trunc_bytes>stream_offset_type(4*APP_GIG)){
 	std::cout << "Initial file length computed as "<< trunc_bytes
 		  << "\nSetting to 4GB "<< std::endl;
 	trunc_bytes=4*APP_GIG;

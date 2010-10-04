@@ -132,14 +132,14 @@ int main(int argc, char ** argv) {
 			if (stream.size() != 0) ERR("size failed(1)");
 			for(int i=0; i < count; ++i)
 				stream.write((i*8209)%8273);
- 			if (stream.size() != count) ERR("size failed(2)");
+ 			if (stream.size() != (size_t)count) ERR("size failed(2)");
  			stream.close();
 		}
 
 		{
 			file_stream<int> stream(blockFactor);
 			stream.open("tmp", file_base::read, sizeof(int));
-			if (stream.size() != count) ERR("size failed(3)");
+			if (stream.size() != (size_t)count) ERR("size failed(3)");
 			for(int i=0; i< count; ++i) {
 				if (stream.can_read() == false) ERR("can_read failed");
 				if (stream.read() != (i*8209)%8273) ERR("read failed");

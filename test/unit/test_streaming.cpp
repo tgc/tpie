@@ -425,6 +425,7 @@ void memory_test_split(memory_base * elm,
 //==============================> stream_source <===============================
 void test_stream_source(char * testName) {
 	BOOST_CONCEPT_ASSERT((sc::memory_managable< tpie::streaming::stream_source<push_test_sink> >));
+	temp_file tf;
 	file_stream<int> s(blockFactor);
 	push_test_sink sink;
 	//TODO test if begin and end data are proccess correctly
@@ -432,7 +433,7 @@ void test_stream_source(char * testName) {
 		stream_source<push_test_sink> ss(s, sink);
 		memory_test_single(&ss, &sink, 0, sizeof(s), 0);
 	} else if (!strcmp(testName, "minimum_memory")) {
-		s.open();
+		s.open(tf.path());
 		for (memory_size_type i=0; test[i]; ++i)
 			s.write(test[i]);
 		s.seek(0);
@@ -455,7 +456,7 @@ void test_stream_source(char * testName) {
 		if (usage > memory) ERR("Used more memory then allocated");
 		if (aa > 0) ERR("Did not deallocate all its memory");
 	} else if (!strcmp(testName, "process")) {
-		s.open();
+		s.open(tf.path());
 		for (memory_size_type i=0; test[i]; ++i)
 			s.write(test[i]);
 		s.seek(14);
@@ -464,7 +465,7 @@ void test_stream_source(char * testName) {
 		ss.process();
 		sink.final();
 	} else if (!strcmp(testName, "process_back")) {
-		s.open();
+		s.open(tf.path());
 		for (memory_size_type i=the_test_size-1; i != memory_size_type(-1); --i)
 			s.write(test[i]);
 		s.seek(14);
@@ -479,9 +480,10 @@ void test_stream_source(char * testName) {
 
 //===============================> stream_sink <================================
 struct test_stream_sink_memory_limit: public test_push_single_memory_limit< stream_sink<int> > {
+	temp_file tf;
 	file_stream<int> fs;
 	test_stream_sink_memory_limit() {
-		fs.open();
+		fs.open(tf.path());
 	}
 
 	virtual stream_sink<int> * construct(memory_monitor & mm) {
@@ -494,6 +496,7 @@ void test_stream_sink(char * testName) {
 	BOOST_CONCEPT_ASSERT((sc::pushable< tpie::streaming::stream_sink<int, X, Y> >));
 	BOOST_CONCEPT_ASSERT((sc::memory_managable< tpie::streaming::stream_sink<int, X, Y> >));
 	BOOST_CONCEPT_ASSERT((sc::memory_managable< tpie::streaming::stream_source<push_test_sink> >));
+	temp_file tf;
 	file_stream<int> s(blockFactor);
 	push_test_sink sink;
 	//TODO test if begin and end data are proccess correctly
@@ -505,7 +508,7 @@ void test_stream_sink(char * testName) {
 		test(0);
 	} else if (!strcmp(testName, "process")) {
 		file_stream<int> s(blockFactor);
-		s.open();
+		s.open(tf.path());
 		stream_sink<int> sink(s);
 		sink.begin();
 		for (memory_size_type i=0; test[i]; ++i)

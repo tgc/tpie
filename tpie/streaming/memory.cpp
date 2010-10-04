@@ -73,10 +73,6 @@ memory_size_type memory_single::memory() {
 	return allocatedMemory;
 }
 
-void memory_single::set_memory(double f) {
-	throw std::runtime_error("set_memory() not implemented");
-}
-
 void memory_single::set_memory(memory_size_type memory) {
 	allocatedMemory = memory;
 }
@@ -116,14 +112,6 @@ memory_size_type memory_split::memory_in() {
 
 memory_size_type memory_split::memory_out() {
 	return allocatedMemoryOut;
-}
-
-void memory_split::set_memory_in(double f) {
-	throw std::runtime_error("set_memory_in() not implemented");
-}
-
-void memory_split::set_memory_out(double f) {
-	throw std::runtime_error("set_memory_out() not implemented");
 }
 
 void memory_split::set_memory_in(memory_size_type m) {
@@ -404,10 +392,6 @@ priority_memory_manager::~priority_memory_manager() {
 
 void priority_memory_manager::add(memory_base * object) {
 	p->add(object);
-}
-
-void priority_memory_manager::allocate(double f, bool verbose) {
-	throw std::runtime_error("allocate() not implemented");		
 }
 
 void priority_memory_manager::allocate(memory_size_type mem, bool verbose) {

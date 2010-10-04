@@ -80,7 +80,6 @@ public:
 	double memory_priority();
 	void set_memory_priority(double priority);
 	memory_size_type memory();
-	void set_memory(double f);
 	void set_memory(memory_size_type m);
 	memory_base::memory_type get_memory_type();
 	virtual memory_size_type minimum_memory();
@@ -100,8 +99,6 @@ public:
 	void set_memory_out_priority(double p);
 	memory_size_type memory_in();
 	memory_size_type memory_out();
-	void set_memory_in(double f);
-	void set_memory_out(double f);
 	void set_memory_in(memory_size_type m);
 	void set_memory_out(memory_size_type m);
 	virtual memory_size_type minimum_memory_in();
@@ -130,7 +127,6 @@ public:
 	priority_memory_manager();
 	~priority_memory_manager();
 	void add(memory_base * object);
-	void allocate(double f=1.0, bool verbose=false);
 	void allocate(memory_size_type mem, bool verbose=false);
 	memory_size_type data_structure_memory(memory_size_type ds);
 };

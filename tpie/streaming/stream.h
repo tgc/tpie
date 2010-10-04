@@ -176,7 +176,7 @@ public:
 	}
 
 	inline const item_type & pull() throw(stream_exception) {
-		return backwards?m_stream.read_back():m_stream.read();
+		return backwards?(const item_type&)m_stream.read_back():(const item_type &)m_stream.read();
 	}
 
 	inline void pull_end(pull_end_data_type * data=0) const throw() {

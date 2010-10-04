@@ -307,7 +307,7 @@ namespace tpie {
 	
 	    // Common code for all delete_block implementations. Inlined.
 	    err delete_block_shared(BIDT bid) {
-		if (bid == header_.last_block - 1) {
+			if (bid == (BIDT)header_.last_block - 1) {
 		    header_.last_block--;
 		}
 		else {

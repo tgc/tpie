@@ -283,7 +283,7 @@ public:
     /// Returns a \ref tpie_stats_stream object containing  statistics of 
     /// the entire tpie system. 
     ////////////////////////////////////////////////////////////////////////////
-	static const stats_stream& gstats() {
+	static stats_stream gstats() {
 		return stats_stream();
 	}
 

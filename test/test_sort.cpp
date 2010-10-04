@@ -425,7 +425,7 @@ void write_random_stream(std::string fname, appInfo & info, progress_indicator_b
        << "\nWriting "<< n << " items..." << std::endl;
   
   trunc=(static_cast<stream_offset_type>(sizeof (SortItem)))*n;
-  if(trunc<0 || trunc>(4*APP_GIG)){
+  if(trunc<0 || trunc>stream_offset_type(4*APP_GIG)){
     std::cout << "Initial file length computed as "<< trunc
          << "\nSetting to 4GB "<< std::endl;
     trunc=4*APP_GIG;

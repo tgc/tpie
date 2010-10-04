@@ -38,6 +38,7 @@ protected:
 	item_t * m_buff;
 	memory_size_type m_buffSize;
 	memory_size_type m_buffIndex;
+	temp_file m_temp;
 	file_stream<item_type> * m_stream;
 	double m_blockFactor;
 	begin_data_t * m_beginData;
@@ -68,7 +69,7 @@ public:
 				return;
 			}
 			m_stream = new file_stream<item_type>(m_blockFactor);
-			m_stream->open();
+			m_stream->open(m_temp.path());
 		}
 		m_stream->write(item);
 	}
@@ -90,12 +91,13 @@ public:
 	typedef end_data_t end_data_type;
 private:
 	typedef buffer_base<T, begin_data_t> parent_t;
+	using parent_t::base_memory;
+	using parent_t::calculate_size;
+	using parent_t::m_blockFactor;
 	using parent_t::m_buff;
 	using parent_t::m_buffIndex;
 	using parent_t::m_stream;
-	using parent_t::base_memory;
-	using parent_t::m_blockFactor;
-	using parent_t::calculate_size;
+	using parent_t::m_temp;
 	typedef pull_stream_source<item_type, backwards> source_t;
 	pull_stream_source<item_type> * m_source;
 	
@@ -134,9 +136,9 @@ public:
 	
 	const item_type & pull() {
 		if (backwards)
-			return m_source->can_pull() ? m_source->pull() : m_buff[m_index--];
+			return m_source->can_pull() ? (const item_type&)m_source->pull() : (const item_type&)m_buff[m_index--];
 		else
-			return (m_index < m_buffIndex) ? m_buff[m_index++] : m_source->pull();
+			return (m_index < m_buffIndex) ? (const item_type&)m_buff[m_index++] : (const item_type&)m_source->pull();
 	}
 
 	bool can_pull() {
@@ -159,6 +161,7 @@ public:
 		if (m_stream)
 			delete m_stream;
 		m_stream = 0;
+		m_temp.free();
 	}
 };
 
@@ -174,13 +177,14 @@ private:
 	typedef pull_stream_source<item_type, backwards> source_t;
 	BOOST_CONCEPT_ASSERT((tpie::streaming::concepts::pushable<dest_t>));
 
+	using parent_t::base_memory;
+	using parent_t::calculate_size;
+	using parent_t::m_beginData;
+	using parent_t::m_blockFactor;
 	using parent_t::m_buff;
 	using parent_t::m_buffIndex;
 	using parent_t::m_stream;
-	using parent_t::base_memory;
-	using parent_t::m_blockFactor;
-	using parent_t::m_beginData;
-	using parent_t::calculate_size;
+	using parent_t::m_temp;
 	dest_t & m_dest;
 public:
 	memory_size_type base_memory() {
@@ -213,6 +217,7 @@ public:
 			delete m_stream;
 			m_stream = 0;
 		}
+		m_temp.free();
 		
 		if (backwards) 
 			for (memory_size_type i=m_buffIndex-1; i != memory_size_type(-1); --i)

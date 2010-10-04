@@ -84,7 +84,7 @@ void vbufftest() {
   }
 }
 
-int main(int argc, char ** argv) {
+int main(int, char ** argv) {
   bestTime = 10000000;
   vbufftest<1>();
   vbufftest<2>();
