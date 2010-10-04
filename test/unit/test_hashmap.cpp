@@ -23,16 +23,14 @@
 #include <boost/random/linear_congruential.hpp>
 #include <boost/unordered_map.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
-
+#include "test_timer.h"
+#include <iomanip>
 using namespace tpie;
 using namespace std;
-//using namespace std::tr1;
-using namespace boost::posix_time;
-
 
 template <template <typename value_t, typename hash_t, typename equal_t, typename index_t> class table_t>
 bool basic_test() {
-	hash_map<int, char, hash<int>, std::equal_to<int>, size_t, table_t> q1(200);
+	tpie::hash_map<int, char, tpie::hash<int>, std::equal_to<int>, size_t, table_t> q1(200);
 	map<int, char> q2;
 	boost::rand48 prng(42);
 	for(int i=0; i < 100; ++i) {
@@ -88,57 +86,65 @@ struct identity_gen {
 	static inline int cnt() {return 1000000;}
 };
 
-
 template <typename gen_t, 
 		  template <typename value_t, typename hash_t, typename equal_t, typename index_t> class table_t>
 void test_speed() {
-	ptime s1 = microsec_clock::universal_time();
-	hash_map<int, char, hash<size_t>, std::equal_to<size_t>, size_t, table_t> q1(gen_t::cnt());
-	{
-		for(int i=0; i < gen_t::cnt();++i) {
+	test_timer insert_hash_map("insert hash_map");
+	test_timer insert_unordered_map("insert unorderd_map");
+
+	test_timer find_hash_map("find hash_map");
+	test_timer find_unordered_map("find unordered_map");
+
+	test_timer erase_hash_map("erase hash_map");
+	test_timer erase_unordered_map("erase unordered_map");
+	
+	for(int t=0; t < 100; ++t) {
+		insert_hash_map.start();
+		tpie::hash_map<int, char, tpie::hash<size_t>, std::equal_to<size_t>, size_t, table_t> q1(gen_t::cnt());
+		for(int i=0; i < gen_t::cnt();++i) 
 			q1[gen_t::key(i)] = gen_t::value(i);
-		}
-	}
-	ptime s2 = microsec_clock::universal_time();
-	boost::unordered_map<int, char> q2;
-	{
+		insert_hash_map.stop();
+	
+		insert_unordered_map.start();
+		boost::unordered_map<int, char> q2;
 		for(int i=0; i < gen_t::cnt();++i)
 			q2[gen_t::key(i)] = gen_t::value(i);
-	}
-	ptime s3 = microsec_clock::universal_time();
-	std::cout << "Insert speedup: " << (double)(s3 - s2).total_milliseconds() / (double)(s2 - s1).total_milliseconds() << std::endl;
-	int x=42;
-	s1 = microsec_clock::universal_time();
-	{
+		insert_unordered_map.stop();
+		
+		int x=42;
+		find_hash_map.start();
 		for(int i=0; i < gen_t::cnt();++i)
 			x ^= q1.find(gen_t::key(i))->second;
-	}
-	s2 = microsec_clock::universal_time();
-	{
+		find_hash_map.stop();
+
+		find_unordered_map.start();
 		for(int i=0; i < gen_t::cnt();++i)
 			x ^= q2.find(gen_t::key(i))->second;
-	}
-	s3 = microsec_clock::universal_time();
+		find_unordered_map.stop();
 
-	std::cout << "Find speedup: " << (double)(s3 - s2).total_milliseconds() / (double)(s2 - s1).total_milliseconds() << std::endl;
-
-	s1 = microsec_clock::universal_time();
-	{
+		erase_hash_map.start();
 		for(int i=0; i < gen_t::cnt();++i)
 			q1.erase(gen_t::key(i));
-	}
-	s2 = microsec_clock::universal_time();
-	{
+		erase_hash_map.stop();
+		
+		erase_unordered_map.start();
 		for(int i=0; i < gen_t::cnt();++i)
 			q2.erase(gen_t::key(i));
+		erase_unordered_map.stop();
+		
+		if (x + q1.size() + q2.size() != 42) std::cout << "Orly" << std::endl;
+		std::cout << std::setw(3) << t  << "%\r" << std::flush;
 	}
-	s3 = microsec_clock::universal_time();
-	if (x + q1.size() + q2.size() != 42) std::cout << "Orly" << std::endl;
-	std::cout << "Delete speedup: " << (double)(s3 - s2).total_milliseconds() / (double)(s2 - s1).total_milliseconds() << std::endl;
+	insert_hash_map.output();
+	insert_unordered_map.output();
+	find_hash_map.output();
+	find_unordered_map.output();
+	erase_hash_map.output();
+	erase_unordered_map.output();
 }
 
 bool iterator_test() {
-	hash_map<int, char> m(20);
+	tpie::hash_map<int, char> m(20);
 	vector< std::pair<int,char> > d;
 	vector< std::pair<int,char> > r;
 	
@@ -148,7 +154,7 @@ bool iterator_test() {
 	d.push_back(make_pair(9,'e'));
 	d.push_back(make_pair(10,'x'));
 	for(size_t i=0; i < d.size(); ++i) m.insert(d[i].first, d[i].second);
-	for(hash_map<int, char>::iterator i=m.begin(); i != m.end(); ++i) 
+	for(tpie::hash_map<int, char>::iterator i=m.begin(); i != m.end(); ++i) 
 		r.push_back(*i);
 	sort(d.begin(), d.end());
 	sort(r.begin(), r.end());
@@ -158,10 +164,10 @@ bool iterator_test() {
 
 class hashmap_memory_test: public memory_test {
 public:
-	hash_map<int, char> * a;
-	virtual void alloc() {a = new hash_map<int, char>(123456);}
+	tpie::hash_map<int, char> * a;
+	virtual void alloc() {a = new tpie::hash_map<int, char>(123456);}
 	virtual void free() {delete a;}
-	virtual size_type claimed_size() {return hash_map<int, char>::memory_usage(123456);}
+	virtual size_type claimed_size() {return tpie::hash_map<int, char>::memory_usage(123456);}
 };
 
 int main(int argc, char **argv) {

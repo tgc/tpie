@@ -73,7 +73,6 @@ int main(int argc, char **argv) {
   // Log debugging info from the application, but not from the library.
   tpie_log_init(LOG_APP_DEBUG);
 
-  size_t os_block_size = TPIE_OS_BLOCKSIZE();
   parse_args(argc, argv);
 
   params.structure_name = "B+-tree";
@@ -271,7 +270,7 @@ int main(int argc, char **argv) {
     seed_random((unsigned int)TPIE_OS_TIME(NULL));
 
     atimer.start();  
-    for (memory_size_type i = 0; i < params.wquery_count; i++) {
+    for (memory_size_type i = 0; i < (memory_size_type)params.wquery_count; i++) {
 		lop[0] = tpie::random() % mbrdx  - wqdx / 2;
 		lop[1] = tpie::random() % mbrdy  - wqdy / 2;
       hip[0] = lop[0] + wqdx;

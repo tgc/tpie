@@ -329,8 +329,9 @@ protected:
 		return real_median(sz);
 #else
 		int i = 0;
-		while ((static_cast<TPIE_OS_OFFSET>(1) << i) < ((sz + params_.leaf_size_max - 1) / 
-						   params_.leaf_size_max)) 
+		while ((static_cast<TPIE_OS_OFFSET>(1) << i) < 
+			   static_cast<TPIE_OS_OFFSET>((sz + params_.leaf_size_max - 1) / 
+										   params_.leaf_size_max))
 			i++;
 		return  (static_cast<TPIE_OS_OFFSET>(1) << (i-1)) * params_.leaf_size_max - 1;
 #endif
@@ -557,7 +558,7 @@ protected:
       
 			while ((err = g->streams[d]->read_item(&p1)) == tpie::ami::NO_ERROR) {
 				// Stop when reaching the offset of the next strip.
-				if (median_strip < g->t[d] - 1 && off >= g->o[d][median_strip + 1])
+				if (median_strip < TPIE_OS_OFFSET(g->t[d]) - 1 && off >= TPIE_OS_OFFSET(g->o[d][median_strip + 1]))
 					break;
 	
 				// This test is using the new values for hi.
@@ -2880,8 +2881,7 @@ protected:
 		for (i = 0; i < dim; i++) {
 			lop[i] = std::min(p1[i], p2[i]);
 			hip[i] = std::max(p1[i], p2[i]);
-			if (p1[i] == p2[i])
-				TP_LOG_WARNING_ID("  window_query: points have one identical coordinate.");
+			if (p1[i] == p2[i]) {TP_LOG_WARNING_ID("  window_query: points have one identical coordinate.");}
 		}
 
 		// A stack for the search (no recursive calls here :). 

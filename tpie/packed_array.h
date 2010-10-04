@@ -16,8 +16,14 @@
 // 
 // You should have received a copy of the GNU Lesser General Public License
 // along with TPIE.  If not, see <http://www.gnu.org/licenses/>
-#ifndef __TPIE_BITARRAY_H__
-#define __TPIE_BITARRAY_H__
+#ifndef __TPIE_PACKED_ARRAY_H__
+#define __TPIE_PACKED_ARRAY_H__
+
+#ifdef _MSC_VER
+#pragma warning(push)
+//Yes, I am perfectly aware that I cast ints to bool
+#pragma warning(disable : 4800)
+#endif
 
 #include <boost/static_assert.hpp>
 
@@ -40,20 +46,19 @@ private:
 	CT & self() {return *reinterpret_cast<CT*>(this);}
 	template <typename, bool, typename> friend class packed_array_iter_facade;
 
-	//friend CT operator+(ptrdiff_t, packed_array_iter_facade);
-public:	
+public:
 	typedef ptrdiff_t difference_type;
 	typedef std::random_access_iterator_tag iterator_category;
-	const CT & self() const {return *reinterpret_cast<const CT*>(this);}
 
+	const CT & self() const {return *reinterpret_cast<const CT*>(this);}
 	template <typename TT>
 	inline bool operator==(const TT & o) const {return self().index() == o.self().index();}
 	template <typename TT>
 	inline bool operator!=(const TT & o) const {return self().index() != o.self().index();}
 	inline CT & operator++() {self().index() += forward?1:-1; return self();}
-	inline CT operator++(int) {CT x=self(); self()++; return x;}
+	inline CT operator++(int) {CT x=self(); ++self(); return x;}
 	inline CT & operator--() {self().index() += forward?-1:1; return self();}
-	inline CT operator--(int) {CT x=self(); self()--; return x;}
+	inline CT operator--(int) {CT x=self(); --self(); return x;}
 	inline bool operator<(const CT & o) const {return self().index() < o.self().index();}
 	inline bool operator>(const CT & o) const {return self().index() > o.self().index();}
 	inline bool operator<=(const CT & o) const {return self().index() <= o.self().index();}
@@ -114,7 +119,7 @@ private:
 	public:
 		template <bool> friend class packed_array::iter_base;
 		template <bool> friend class packed_array::const_iter_base;
-		operator T() const {return (elms[high(index)] >> low(index))&mask();}
+		operator T() const {return static_cast<T>((elms[high(index)] >> low(index))&mask());}
 	 	inline iter_return_type & operator=(const T b) {
 			storage_type * p = elms+high(index);
 			size_t i = low(index);
@@ -175,7 +180,7 @@ private:
 		typedef T * pointer;
 
 		const_iter_base & operator=(const const_iter_base & o) {idx = o.idx; elms=o.elms; return *this;}
-		T operator*() const {return (elms[high(idx)] >> low(idx)) & mask();}
+		T operator*() const {return static_cast<T>(elms[high(idx)] >> low(idx) & mask());}
 		const_iter_base(const_iter_base const& o): elms(o.elms), idx(o.idx) {}
 		const_iter_base(iter_base<forward> const& o): elms(o.elm.elms), idx(o.elm.index) {}
 	};		
@@ -193,9 +198,9 @@ private:
 		return_type(storage_type * p_, size_t i_): p(p_), i(i_) {}
 		friend class packed_array;
 	public:
-	 	inline operator T() const {return (*p >> i) & mask();}
+	 	inline operator T() const {return static_cast<T>((*p >> i) & mask());}
 	 	inline return_type & operator=(const T b) {
-			*p = (*p & ~(mask()<<i)) | ((b & mask()) << i);
+			*p = (*p & ~(mask()<<i)) | ((static_cast<const storage_type>(b) & mask()) << i);
 	 		return *this;
 		}
 	 	inline return_type & operator=(const return_type & t){
@@ -342,7 +347,7 @@ public:
 	/////////////////////////////////////////////////////////
 	inline T operator[](size_t t)const {
 		assert(t < m_size);
-		return (m_elements[high(t)] >> low(t))&mask();
+		return static_cast<T>((m_elements[high(t)] >> low(t))&mask());
 	}	
 	
 	/////////////////////////////////////////////////////////
@@ -422,5 +427,9 @@ public:
 	
 };
 
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 }
-#endif //__TPIE_BITARRY_H__
+#endif //__TPIE_PACKED_ARRAY_H__
