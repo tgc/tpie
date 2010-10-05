@@ -25,16 +25,16 @@ using namespace std;
 
 bool basic_test() {
 	//Lets hope the external pq has a small block factor!
-	MM_manager.set_memory_limit(15000000);
-	ami::priority_queue<boost::uint64_t, bit_pertume_compare< std::greater<boost::uint64_t> > > pq(0.1);
+	MM_manager.set_memory_limit(32*1024*1024);
+	ami::priority_queue<boost::uint64_t, bit_pertume_compare< std::greater<boost::uint64_t> > > pq(0.60);
 	return basic_pq_test(pq, 350003);
 }
 
 bool medium_instance() {
 	TPIE_OS_OFFSET iterations = 10000;
-    MM_manager.set_memory_limit(16*1024*1024);
+	MM_manager.set_memory_limit(32*1024*1024);
 	progress_indicator_arrow progress("Running test","Running test:",1100,iterations,1);
-    for(TPIE_OS_OFFSET it = 1100; it < iterations; it++)  {
+	for(TPIE_OS_OFFSET it = 1100; it < iterations; it++)  {
 		progress.step();
 		ami::priority_queue<int, std::greater<int> > pq(0.75);
 		std::priority_queue<int, vector<int>,std::less<int> > pq2;

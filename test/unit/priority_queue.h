@@ -74,7 +74,6 @@ bool basic_pq_test(T & pq, boost::uint64_t size) {
 	// 	pq.pop();
 	// }
 	// if (!pq.empty()) return false; 
-
 	std::priority_queue<boost::uint64_t, std::vector<boost::uint64_t>, bit_pertume_compare<std::less<boost::uint64_t> > > pq2;
 	for (boost::uint64_t i=0;i<size;i++){
 		boost::uint64_t r = rnd();
@@ -82,12 +81,21 @@ bool basic_pq_test(T & pq, boost::uint64_t size) {
 		pq2.push(r);
 	}
 	while (!pq.empty()){
-		if (pq.top()!=pq2.top()) return false;
+		if (pq.top()!=pq2.top()) {
+			std::cout << "Top was " << pq.top() << " expected " << pq2.top() << std::endl;
+			return false;
+		}
 		pq.pop();
-		if (pq2.empty()) return false;
+		if (pq2.empty()) {
+			std::cout << "Expected pq to be empty" << std::endl;
+			return false;
+		}
 		pq2.pop();
 	}
-	if (!pq2.empty()) return false;
+	if (!pq2.empty()) {
+		std::cout << "Expected pq to be none empty" << std::endl;
+		return false;
+	}
 	return cyclic_pq_test(pq, size, size);
 }
 

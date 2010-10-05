@@ -30,6 +30,8 @@ add_fulltest(internal_priority_queue large_cycle)
 add_unittest(array basic iterators memory bit_basic bit_iterators bit_memory)
 add_unittest(disjoint_set basic memory)
 
+add_unittest(streaming)
+
 add_executable(stream_test stream.cpp)
 target_link_libraries(stream_test tpie)
 
