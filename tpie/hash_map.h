@@ -337,7 +337,9 @@ public:
 	}
 	
 	inline const data_t & operator[](const key_t & key) const {
-		return tbl.get(tbl.find(key))->second;
+		size_t l=tbl.find(value_t(key, tbl.unused.second));
+		assert(l < tbl.end());
+		return tbl.get(l).second;
 	}
 	
 	inline iterator find(const key_t & key) {
@@ -345,7 +347,7 @@ public:
 	}
 
 	inline const_iterator find(const key_t & key) const {
-		return const_iterator(tbl, tbl.find(key));
+		return const_iterator(tbl, tbl.find(value_t(key, tbl.unused.second)));
 	}
 
 	inline bool contains(const key_t & key) const {
