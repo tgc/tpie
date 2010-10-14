@@ -65,8 +65,13 @@ add_test(streaming::pull_block_buffer--memory ut-streaming pull_block_buffer mem
 add_test(streaming::pull_block_buffer--minimum_memory ut-streaming pull_block_buffer minimum_memory)
 add_test(streaming::pull_block_buffer--process ut-streaming pull_block_buffer process)
 
+
 add_test(file_accessor_stdio stream_test file_accessor_stdio)
-add_test(file_accessor_posix stream_test file_accessor_posix)
+if (WIN32)
+   add_test(file_accessor_posix stream_test file_accessor_win32)
+else (WIN32)
+   add_test(file_accessor_posix stream_test file_accessor_posix)
+endif (WIN32)
 add_test(file_stream stream_test file_stream)
 add_test(substreams stream_test substreams)
-#add_test(fd_file stream_test fd_file)
+

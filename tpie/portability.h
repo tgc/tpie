@@ -969,13 +969,21 @@ void * operator new(\
 #ifdef TPIE_DEPRECATED_WARNINGS
 #ifdef __GNUC__
 #define TPIE_DEPRECATED(func) func __attribute__ ((deprecated))
+#define TPIE_DEPRECATED_CLASS_A(func) func __attribute__ ((deprecated))
+#define TPIE_DEPRECATED_CLASS_B
 #elif defined(_MSC_VER)
 #define TPIE_DEPRECATED(func) __declspec(deprecated) func
+#define TPIE_DEPRECATED_CLASS_A(func) func
+#define TPIE_DEPRECATED_CLASS_B  __declspec(deprecated)
 #else
 #define TPIE_DEPRECATED(func) func
+#define TPIE_DEPRECATED_CLASS_A(func) func
+#define TPIE_DEPRECATED_CLASS_B 
 #endif
 #else
 #define TPIE_DEPRECATED(func) func
+#define TPIE_DEPRECATED_CLASS_A(func) func
+#define TPIE_DEPRECATED_CLASS_B 
 #endif
 
 TPIE_DEPRECATED(bool TPIE_OS_EXISTS(const std::string & path));

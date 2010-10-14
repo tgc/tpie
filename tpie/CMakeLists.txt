@@ -75,7 +75,8 @@ set (STREAM_SOURCES
   )
 
 if (WIN32)
-  
+set (STREAM_SOURCES ${STREAM_SOURCES} file_accessor/win32.cpp)
+set (STREAM_HEADERS ${STREAM_HEADERS} file_accessor/win32.h)
 else(WIN32)
 set (STREAM_SOURCES ${STREAM_SOURCES} file_accessor/posix.cpp)
 set (STREAM_HEADERS ${STREAM_HEADERS} file_accessor/posix.h)

@@ -23,8 +23,11 @@
 #include <tpie/file.h>
 #include <tpie/util.h>
 #include <tpie/file_accessor/stdio.h>
+#ifndef WIN32
 #include <tpie/file_accessor/posix.h>
-
+#else //WIN32
+#include <tpie/file_accessor/win32.h>
+#endif //WIN32
 using namespace std;
 using namespace tpie;
 
@@ -32,83 +35,88 @@ using namespace tpie;
 
 template <typename T>
 void test_file_accessor() {
- 	remove("tmp");
- 	{
- 		int d=42;
-
- 		T x;
- 		x.open("tmp", false, true, sizeof(int), sizeof(int));
- 		if (x.size() != 0) ERR("New stream has wrong size");
- 		if (x.path() != "tmp") ERR("Wrong path");
-		
- 		x.write(&d, 0, 1);
- 		x.write(&d, 1, 1);
-		
-		int ud=314;
-		x.write_user_data(&ud);
-
- 		try {
- 			x.read(&d, 0, 1);
- 			ERR("Read should faild");
- 		} catch(io_exception &) {
- 			//Do nothing
- 		}
-		
- 		if (x.size() != 2) ERR("Wrong size");
- 		x.close();
- 	}
-
  	try {
- 		T x;
- 		x.open("tmp", true, false, sizeof(int)+1, sizeof(int));
- 		ERR("Opened file with wrong item size");
- 	} catch(invalid_file_exception&) {
- 		//Do nothing
- 	}
+		remove("tmp");
+		{
+			int d=42;
+			
+			T x;
+			x.open("tmp", false, true, sizeof(int), sizeof(int));
+			if (x.size() != 0) ERR("New stream has wrong size");
+			if (x.path() != "tmp") ERR("Wrong path");
+			
+			x.write(&d, 0, 1);
+			x.write(&d, 1, 1);
+			
+			int ud=314;
+			x.write_user_data(&ud);
+			try {
+				x.read(&d, 0, 1);
+				ERR("Read should faild");
+			} catch(io_exception &) {
+				//Do nothing
+			}
+			if (x.size() != 2) ERR("Wrong size");
+			x.close();
+		}
 
- 	try {
- 		T x;
- 		x.open("tmp", true, false, sizeof(int), 0);
- 		ERR("Opened file with wrong user data size");
- 	} catch(invalid_file_exception&) {
- 		//Do nothing
- 	}
-
- 	{
- 		int d;
- 		T x;
- 		x.open("tmp", true, true, sizeof(int), sizeof(int));
- 		if (x.read(&d, 1, 1) != 1 || d != 42) ERR("Read failed");
- 		d=12;
- 		x.write(&d, 1, 1);
- 		x.write(&d, 2, 1);
- 		if (x.read(&d, 0, 1) != 1 || d != 42) ERR("Read failed");
- 		if (x.read(&d, 1, 1) != 1 || d != 12) ERR("Read failed");
- 		if (x.read(&d, 2, 1) != 1 || d != 12) ERR("Read failed");
-		int ud;
-		x.read_user_data(&ud);
-
-		if (ud != 314) ERR("Wrong user data");
- 		if (x.size() != 3) ERR("Wrong size");
- 		x.close();
- 	}
-	
- 	{
- 		T x;
- 		x.open("tmp", true, false, sizeof(int), sizeof(int) );
- 		try {
- 			int d=44;
- 			x.write(&d, 0, 1);
- 			ERR("Write should faild");
- 		} catch(io_exception &) {
- 			//Do nothing
- 		}
- 		int d;
- 		if (x.read(&d, 0, 1) != 1 || d != 42) ERR("Read failed");
- 		if (x.read(&d, 1, 1) != 1 || d != 12) ERR("Read failed");
- 		if (x.read(&d, 2, 1) != 1 || d != 12) ERR("Read failed");
- 		x.close();
- 	}
+		try {
+			T x;
+			x.open("tmp", true, false, sizeof(int)+1, sizeof(int));
+			ERR("Opened file with wrong item size");
+		} catch(invalid_file_exception&) {
+			//Do nothing
+		}
+		try {
+			T x;
+			x.open("tmp", true, false, sizeof(int), 0);
+			ERR("Opened file with wrong user data size");
+		} catch(invalid_file_exception&) {
+			//Do nothing
+		}
+		
+		{
+			int d;
+			T x;
+			x.open("tmp", true, true, sizeof(int), sizeof(int));
+			if (x.read(&d, 1, 1) != 1 || d != 42) ERR("Read failed");
+			d=12;
+			x.write(&d, 1, 1);
+			x.write(&d, 2, 1);
+			if (x.read(&d, 0, 1) != 1 || d != 42) ERR("Read failed");
+			if (x.read(&d, 1, 1) != 1 || d != 12) ERR("Read failed");
+			if (x.read(&d, 2, 1) != 1 || d != 12) ERR("Read failed");
+			int ud;
+			x.read_user_data(&ud);
+			
+			if (ud != 314) ERR("Wrong user data");
+			if (x.size() != 3) ERR("Wrong size");
+			x.close();
+		}
+		
+		{
+			T x;
+			x.open("tmp", true, false, sizeof(int), sizeof(int) );
+			try {
+				int d=44;
+				x.write(&d, 0, 1);
+				ERR("Write should faild");
+			} catch(io_exception &) {
+				//Do nothing
+			}
+			int d;
+			if (x.read(&d, 0, 1) != 1 || d != 42) ERR("Read failed");
+			if (x.read(&d, 1, 1) != 1 || d != 12) ERR("Read failed");
+			if (x.read(&d, 2, 1) != 1 || d != 12) ERR("Read failed");
+			x.close();
+		}
+	} catch(io_exception & e) {
+		ERR("io_exception " << e.what());
+	} catch(invalid_file_exception& e) {
+		ERR("invalid_file_exception " << e.what());
+	} catch(tpie::exception & e) {
+		ERR("Other exception " << e.what());
+	}
  	remove("tmp");
 }
 
@@ -116,8 +124,13 @@ int main(int argc, char ** argv) {
 	//TODO add memory allocation tests
  	if (argc == 2 && !strcmp(argv[1], "file_accessor_stdio")) {
  		test_file_accessor<file_accessor::stdio>();
+#ifndef WIN32
  	} else if (argc == 2 && !strcmp(argv[1], "file_accessor_posix")) {
  		test_file_accessor<file_accessor::posix>();
+#else //WIN32
+ 	} else if (argc == 2 && !strcmp(argv[1], "file_accessor_win32")) {
+ 		test_file_accessor<file_accessor::win32>();
+#endif //WIN32
  	} else if (argc == 2 && !strcmp(argv[1], "file_stream")) {
 		///First a simple test
 		double blockFactor=file_base::calculate_block_factor(128*sizeof(int));
@@ -160,7 +173,6 @@ int main(int argc, char ** argv) {
 				if (stream.read_back() != (i*8209)%8273) ERR("read back failed");
 
 			}
-			std::cout << "Offset: " <<  stream.offset() << std::endl;
 			if (stream.can_read_back() == true) ERR("can_read_back failed (2)");
 			
 			int y;

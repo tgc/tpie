@@ -178,13 +178,13 @@ ami::err queue<T>::peek(const T **t) {
 }
 
 namespace ami {
-	TPIE_DEPRECATED(
-	template <typename T> 
-	class queue: public tpie::queue<T> {
-	public:
-		queue() {}
-		queue(const std::string& basename): tpie::queue<T>(basename) {}
-	};
+	TPIE_DEPRECATED_CLASS_A(
+		template <typename T> 
+		class TPIE_DEPRECATED_CLASS_B queue: public tpie::queue<T> {
+		public:
+			queue() {}
+			queue(const std::string& basename): tpie::queue<T>(basename) {}
+		};
 	);
 }
 }  //  tpie namespace

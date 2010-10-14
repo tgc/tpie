@@ -30,13 +30,19 @@
 #include <tpie/file_accessor/stdio.h>
 #ifndef WIN32
 #include <tpie/file_accessor/posix.h>
-#endif
+#else ////WIN32
+#include <tpie/file_accessor/win32.h>
+#endif //WIN32
 #include <tpie/mm_base.h>
 #include <tpie/mm_manager.h>
 
 namespace tpie {
 
-typedef tpie::file_accessor::stdio default_file_accessor;
+#ifndef WIN32
+typedef tpie::file_accessor::posix default_file_accessor;
+#else //WIN32
+typedef tpie::file_accessor::win32 default_file_accessor;
+#endif //WIN32
 
 #ifdef _MSC_VER
 #pragma warning( disable: 4200 )
