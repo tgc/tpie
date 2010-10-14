@@ -121,9 +121,6 @@ namespace tpie {
 
 	_DECLARE_LOGSTREAM_OUTPUT_OPERATOR(const float);
 	_DECLARE_LOGSTREAM_OUTPUT_OPERATOR(const double);
-	#ifdef _WIN64
-	_DECLARE_LOGSTREAM_OUTPUT_OPERATOR(const size_t);
-	#endif
 	
     };
     
