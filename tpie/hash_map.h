@@ -33,6 +33,11 @@ struct hash {
 	inline size_t operator()(const T & e) const {return e * 103841;}	
 };
 
+template <typename T>
+struct hash<T*> {
+	inline size_t operator()(const T * e) const {return reinterpret_cast<size_t>(e) * 103841;}	
+};
+
 template <typename T1, typename T2>
 struct hash<std::pair<T1,T2> > {
 	hash<T1> h1;
