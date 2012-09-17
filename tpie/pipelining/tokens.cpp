@@ -29,13 +29,18 @@ segment_map::id_t segment_map::nextId = 0;
 // Called by graph_traits
 void segment_map::send_successors() const {
 	for (relmapit i = m_relations.begin(); i != m_relations.end(); ++i) {
+		if (i->second.second == uses) continue;
+		pipe_segment * lhs = m_tokens.find(i->first)->second->assert_pipe_segment();
+		pipe_segment * rhs = m_tokens.find(i->second.first)->second->assert_pipe_segment();
 		switch (i->second.second) {
 			case pushes:
-				m_tokens.find(i->first)->second->add_successor(m_tokens.find(i->second.first)->second);
+				lhs->add_successor(rhs);
 				break;
 			case pulls:
 			case depends:
-				m_tokens.find(i->second.first)->second->add_successor(m_tokens.find(i->first)->second);
+				rhs->add_successor(lhs);
+				break;
+			case uses:
 				break;
 		}
 	}
@@ -54,6 +59,9 @@ void segment_map::link(segment_map::ptr target) {
 
 	for (mapit i = target->begin(); i != target->end(); ++i) {
 		set_token(i->first, i->second);
+	}
+	for (dsmapit i = target->m_dataStructures.begin(); i != target->m_dataStructures.end(); ++i) {
+		set_data_structure(i->first, i->second);
 	}
 	for (relmapit i = target->m_relations.begin(); i != target->m_relations.end(); ++i) {
 		m_relations.insert(*i);

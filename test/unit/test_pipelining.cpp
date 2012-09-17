@@ -28,6 +28,7 @@
 
 using namespace tpie;
 using namespace tpie::pipelining;
+namespace P = tpie::pipelining;
 
 typedef uint64_t test_t;
 
@@ -366,8 +367,7 @@ bool memory_test() {
 	p();
 	graph_traits g(*p.get_segment_map());
 	double fractions = g.sum_memory();
-	memory_size_type memory = g.sum_minimum_memory();
-	log_info() << fractions << std::endl << memory << std::endl;
+	log_info() << fractions << std::endl;
 	double d = fractions-(1.1+3.2+3.3+2.3);
 	return d*d < 0.0001;
 }
@@ -524,6 +524,19 @@ bool virtual_test() {
 	return check_test_vectors();
 }
 
+bool data_structure_test() {
+	P::priority_queue_push_pull<test_t> pq;
+	expectvector = inputvector;
+	std::reverse(inputvector.begin(), inputvector.end());
+	pipeline p1 = input_vector(inputvector)
+		| pq.pusher();
+	pipeline p2 = pq.puller()
+		| output_vector(outputvector);
+	p1.plot(log_info());
+	p1();
+	return check_test_vectors();
+}
+
 int main(int argc, char ** argv) {
 	return tpie::tests(argc, argv)
 	.setup(setup_test_vectors)
@@ -543,5 +556,6 @@ int main(int argc, char ** argv) {
 	.test(merger_memory_test, "merger_memory", "n", static_cast<size_t>(10))
 	.test(fetch_forward_test, "fetch_forward")
 	.test(virtual_test, "virtual")
+	.test(data_structure_test, "data_structure")
 	;
 }

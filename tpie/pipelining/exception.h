@@ -26,6 +26,14 @@ namespace tpie {
 
 namespace pipelining {
 
+struct not_pipe_segment : tpie::exception {
+	inline not_pipe_segment() : tpie::exception("Not a pipe segment") {}
+};
+
+struct not_data_structure : tpie::exception {
+	inline not_data_structure() : tpie::exception("Not a data structure") {}
+};
+
 struct not_initiator_segment : tpie::exception {
 	inline not_initiator_segment() : tpie::exception("Not an initiator segment") {}
 };

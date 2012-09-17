@@ -35,9 +35,11 @@
 #include <tpie/pipelining/pipe_base.h>
 #include <tpie/pipelining/factory_helpers.h>
 #include <tpie/pipelining/virtual.h>
+#include <tpie/pipelining/data_structure.h>
 
 // Library
 #include <tpie/pipelining/buffer.h>
+#include <tpie/pipelining/data_structures.h>
 #include <tpie/pipelining/file_stream.h>
 #include <tpie/pipelining/helpers.h>
 #include <tpie/pipelining/merge.h>

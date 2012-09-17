@@ -29,6 +29,7 @@
 #include <tpie/tpie_assert.h>
 #include <vector>
 #include <stack>
+#include <tpie/pipelining/tokens.h>
 
 namespace tpie {
 
@@ -38,6 +39,8 @@ struct pipe_segment;
 
 class phase {
 public:
+	typedef pipe_segment * val_t;
+
 	struct segment_graph;
 
 	phase();
@@ -45,18 +48,20 @@ public:
 	phase & operator=(const phase &);
 	~phase();
 
-	inline void set_initiator(pipe_segment * s) {
+	inline void set_initiator(val_t s) {
 		tp_assert(m_initiator == 0, "Initiator set twice");
 		m_initiator = s;
 	}
 
-	bool is_initiator(pipe_segment * s);
+	bool is_initiator(val_t s);
 
-	void add(pipe_segment * s);
+	void add(segment_base * s);
 
-	void add_successor(pipe_segment * from, pipe_segment * to);
+	void add_successor(val_t from, val_t to);
 
-	inline size_t count(pipe_segment * s) {
+	void add_data_structure(data_structure * ds);
+
+	inline size_t count(val_t s) {
 		for (size_t i = 0; i < m_segments.size(); ++i) {
 			if (m_segments[i] == s) return 1;
 		}
@@ -85,11 +90,13 @@ private:
 	std::auto_ptr<segment_graph> g;
 
 	/** a pointer is a weak reference to something that isn't reference counted. */
-	std::vector<pipe_segment *> m_segments;
+	std::vector<val_t> m_segments;
+
+	std::vector<data_structure *> m_dataStructures;
 
 	double m_memoryFraction;
 	memory_size_type m_minimumMemory;
-	pipe_segment * m_initiator;
+	val_t m_initiator;
 
 	void assign_minimum_memory() const;
 };
@@ -100,6 +107,7 @@ struct graph_traits {
 	typedef std::vector<phase> phases_t;
 	typedef phases_t::iterator phaseit;
 	typedef progress_types<true> Progress;
+	typedef segment_base * val_t;
 
 	graph_traits(const segment_map & map);
 
@@ -107,14 +115,6 @@ struct graph_traits {
 		double sum = 0.0;
 		for (size_t i = 0; i < m_phases.size(); ++i) {
 			sum += m_phases[i].memory_fraction();
-		}
-		return sum;
-	}
-
-	memory_size_type sum_minimum_memory() {
-		memory_size_type sum = 0;
-		for (size_t i = 0; i < m_phases.size(); ++i) {
-			sum += m_phases[i].minimum_memory();
 		}
 		return sum;
 	}

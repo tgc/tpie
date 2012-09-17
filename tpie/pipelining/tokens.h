@@ -80,27 +80,37 @@
 #include <iostream>
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
+#include <boost/any.hpp>
+#include <tpie/pipelining/priority_type.h>
 
 namespace tpie {
 
 namespace pipelining {
 
-struct pipe_segment;
+struct segment_base;
 
 struct segment_token;
+
+class data_structure;
+
+struct pipe_segment;
 
 enum segment_relation {
 	pushes,
 	pulls,
-	depends
+	depends,
+	uses
 };
 
 struct segment_map {
 	typedef uint64_t id_t;
-	typedef pipe_segment * val_t;
+	typedef segment_base * val_t;
 
 	typedef std::map<id_t, val_t> map_t;
 	typedef map_t::const_iterator mapit;
+
+	typedef std::map<id_t, boost::any> dsmap_t;
+	typedef dsmap_t::const_iterator dsmapit;
 
 	typedef std::multimap<id_t, std::pair<id_t, segment_relation> > relmap_t;
 	typedef relmap_t::const_iterator relmapit;
@@ -135,6 +145,23 @@ struct segment_map {
 	inline val_t get(id_t id) const {
 		mapit i = m_tokens.find(id);
 		if (i == m_tokens.end()) return 0;
+		return i->second;
+	}
+
+	void set_data_structure(id_t id, boost::any ds) {
+		if (m_dataStructures.count(id)) {
+			log_warning() << "Overriding data structure " << id << std::endl;
+			m_dataStructures.erase(id);
+		}
+		m_dataStructures.insert(std::make_pair(id, ds));
+	}
+
+	inline boost::any get_data_structure(id_t id) const {
+		dsmapit i = m_dataStructures.find(id);
+		if (i == m_dataStructures.end()) {
+			log_error() << "Data structure id " << id << " not found" << std::endl;
+			return boost::any();
+		}
 		return i->second;
 	}
 
@@ -177,6 +204,7 @@ struct segment_map {
 
 private:
 	map_t m_tokens;
+	dsmap_t m_dataStructures;
 	relmap_t m_relations;
 	relmap_t m_relationsInv;
 
@@ -256,6 +284,135 @@ private:
 	segment_map::ptr m_tokens;
 	size_t m_id;
 	bool m_free;
+};
+
+class segment_base {
+public:
+	///////////////////////////////////////////////////////////////////////////
+	/// \brief Virtual dtor.
+	///////////////////////////////////////////////////////////////////////////
+	virtual ~segment_base() {}
+
+	inline memory_size_type get_minimum_memory() const {
+		return m_minimumMemory;
+	}
+
+	inline memory_size_type get_available_memory() const {
+		return m_availableMemory;
+	}
+
+	inline void set_memory_fraction(double f) {
+		m_memoryFraction = f;
+	}
+
+	inline double get_memory_fraction() const {
+		return m_memoryFraction;
+	}
+
+	inline segment_map::ptr get_segment_map() const {
+		return token.get_map();
+	}
+
+	inline segment_token::id_t get_id() const {
+		return token.id();
+	}
+
+	inline priority_type get_name_priority() {
+		return m_namePriority;
+	}
+
+	inline const std::string & get_name() {
+		return m_name;
+	}
+
+	inline void set_name(const std::string & name, priority_type priority = PRIORITY_USER) {
+		m_name = name;
+		m_namePriority = priority;
+	}
+
+	inline void set_breadcrumb(const std::string & breadcrumb) {
+		m_name = m_name.empty() ? breadcrumb : (breadcrumb + " | " + m_name);
+	}
+
+	inline pipe_segment * cast_pipe_segment() {
+		return m_selfPipeSegment;
+	}
+
+	inline pipe_segment * assert_pipe_segment() {
+		if (0 == m_selfPipeSegment) throw not_pipe_segment();
+		return m_selfPipeSegment;
+	}
+
+	inline data_structure * cast_data_structure() {
+		return m_selfDataStructure;
+	}
+
+	inline data_structure * assert_data_structure() {
+		if (0 == m_selfDataStructure) throw not_data_structure();
+		return m_selfDataStructure;
+	}
+
+protected:
+	inline segment_base()
+		: token(this)
+		, m_minimumMemory(0)
+		, m_availableMemory(0)
+		, m_memoryFraction(1.0)
+		, m_name()
+		, m_namePriority(PRIORITY_NO_NAME)
+		, m_selfPipeSegment(0)
+		, m_selfDataStructure(0)
+	{
+	}
+
+	inline segment_base(const segment_base & other)
+		: token(other.token, this)
+		, m_minimumMemory(other.m_minimumMemory)
+		, m_availableMemory(other.m_availableMemory)
+		, m_memoryFraction(other.m_memoryFraction)
+		, m_name(other.m_name)
+		, m_namePriority(other.m_namePriority)
+		, m_selfPipeSegment(0)
+		, m_selfDataStructure(0)
+	{
+	}
+
+	inline segment_base(const segment_token & token)
+		: token(token, this, true)
+		, m_minimumMemory(0)
+		, m_availableMemory(0)
+		, m_memoryFraction(1.0)
+		, m_name()
+		, m_namePriority(PRIORITY_NO_NAME)
+		, m_selfPipeSegment(0)
+		, m_selfDataStructure(0)
+	{
+	}
+
+	inline void set_minimum_memory(memory_size_type minimumMemory) {
+		m_minimumMemory = minimumMemory;
+	}
+
+	virtual void set_available_memory(memory_size_type availableMemory) {
+		m_availableMemory = availableMemory;
+	}
+
+private:
+	friend struct pipe_segment;
+	friend class data_structure;
+
+	segment_token token;
+
+	memory_size_type m_minimumMemory;
+	memory_size_type m_availableMemory;
+	double m_memoryFraction;
+
+	std::string m_name;
+	priority_type m_namePriority;
+
+protected:
+	pipe_segment * m_selfPipeSegment;
+	data_structure * m_selfDataStructure;
 };
 
 } // namespace pipelining

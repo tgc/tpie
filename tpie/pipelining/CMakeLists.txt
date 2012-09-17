@@ -1,5 +1,7 @@
 set (PIPE_HEADERS
 	buffer.h
+	data_structure.h
+	data_structures.h
 	exception.h
 	factory_base.h
 	factory_helpers.h

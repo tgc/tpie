@@ -25,7 +25,7 @@
 #include <tpie/progress_indicator_base.h>
 #include <tpie/progress_indicator_null.h>
 #include <boost/any.hpp>
-#include <tpie/pipelining/priority_type.h>
+#include <tpie/pipelining/data_structure.h>
 
 namespace tpie {
 
@@ -56,36 +56,7 @@ public:
 /// and implement methods begin(), push() and end(), if it is not a source
 /// segment.
 ///////////////////////////////////////////////////////////////////////////////
-struct pipe_segment {
-	///////////////////////////////////////////////////////////////////////////
-	/// \brief Virtual dtor.
-	///////////////////////////////////////////////////////////////////////////
-	virtual ~pipe_segment() {}
-
-	inline memory_size_type get_minimum_memory() const {
-		return m_minimumMemory;
-	}
-
-	inline memory_size_type get_available_memory() const {
-		return m_availableMemory;
-	}
-
-	inline void set_memory_fraction(double f) {
-		m_memoryFraction = f;
-	}
-
-	inline double get_memory_fraction() const {
-		return m_memoryFraction;
-	}
-
-	inline segment_map::ptr get_segment_map() const {
-		return token.get_map();
-	}
-
-	inline segment_token::id_t get_id() const {
-		return token.id();
-	}
-
+struct pipe_segment : public segment_base {
 	virtual void begin() {
 		forward_all();
 	}
@@ -113,23 +84,6 @@ struct pipe_segment {
 	virtual void evacuate() {
 	}
 
-	inline priority_type get_name_priority() {
-		return m_namePriority;
-	}
-
-	inline const std::string & get_name() {
-		return m_name;
-	}
-
-	inline void set_name(const std::string & name, priority_type priority = PRIORITY_USER) {
-		m_name = name;
-		m_namePriority = priority;
-	}
-
-	inline void set_breadcrumb(const std::string & breadcrumb) {
-		m_name = m_name.empty() ? breadcrumb : (breadcrumb + " | " + m_name);
-	}
-
 	// Called by segment_map
 	inline void add_successor(pipe_segment * succ) {
 		m_successors.push_back(succ);
@@ -145,40 +99,33 @@ struct pipe_segment {
 
 protected:
 	inline pipe_segment()
-		: token(this)
-		, m_minimumMemory(0)
-		, m_availableMemory(0)
-		, m_memoryFraction(1.0)
-		, m_namePriority(PRIORITY_NO_NAME)
+		: segment_base()
 		, m_stepsTotal(0)
 		, m_stepsLeft(0)
 		, m_pi(0)
 	{
+		m_selfPipeSegment = this;
+		m_selfDataStructure = 0;
 	}
 
 	inline pipe_segment(const pipe_segment & other)
-		: token(other.token, this)
-		, m_minimumMemory(other.m_minimumMemory)
-		, m_availableMemory(other.m_availableMemory)
-		, m_memoryFraction(other.m_memoryFraction)
-		, m_name(other.m_name)
-		, m_namePriority(other.m_namePriority)
+		: segment_base(other)
 		, m_stepsTotal(other.m_stepsTotal)
 		, m_stepsLeft(other.m_stepsLeft)
 		, m_pi(other.m_pi)
 	{
+		m_selfPipeSegment = this;
+		m_selfDataStructure = 0;
 	}
 
 	inline pipe_segment(const segment_token & token)
-		: token(token, this, true)
-		, m_minimumMemory(0)
-		, m_availableMemory(0)
-		, m_memoryFraction(1.0)
-		, m_namePriority(PRIORITY_NO_NAME)
+		: segment_base(token)
 		, m_stepsTotal(0)
 		, m_stepsLeft(0)
 		, m_pi(0)
 	{
+		m_selfPipeSegment = this;
+		m_selfDataStructure = 0;
 	}
 
 	inline void add_push_destination(const segment_token & dest) {
@@ -208,12 +155,9 @@ protected:
 		add_dependency(dest.token);
 	}
 
-	inline void set_minimum_memory(memory_size_type minimumMemory) {
-		m_minimumMemory = minimumMemory;
-	}
-
-	virtual void set_available_memory(memory_size_type availableMemory) {
-		m_availableMemory = availableMemory;
+	inline void add_data_structure(const data_structure & dest) {
+		segment_map::ptr m = token.map_union(dest.token);
+		m->add_relation(token.id(), dest.token.id(), uses);
 	}
 
 	template <typename T>
@@ -270,15 +214,6 @@ protected:
 	friend class phase;
 
 private:
-	segment_token token;
-
-	memory_size_type m_minimumMemory;
-	memory_size_type m_availableMemory;
-	double m_memoryFraction;
-
-	std::string m_name;
-	priority_type m_namePriority;
-
 	std::vector<pipe_segment *> m_successors;
 	typedef std::map<std::string, boost::any> valuemap;
 	valuemap m_values;

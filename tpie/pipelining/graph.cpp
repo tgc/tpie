@@ -123,7 +123,7 @@ namespace tpie {
 namespace pipelining {
 
 struct phase::segment_graph {
-	typedef pipe_segment * node_t;
+	typedef phase::val_t node_t;
 	typedef std::vector<node_t> neighbours_t;
 	typedef std::map<node_t, neighbours_t> edgemap_t;
 	typedef int time_type;
@@ -161,13 +161,14 @@ phase & phase::operator=(const phase & other) {
 	return *this;
 }
 
-bool phase::is_initiator(pipe_segment * s) {
+bool phase::is_initiator(val_t s) {
 	segment_map::ptr m = s->get_segment_map()->find_authority();
 	segment_map::id_t id = s->get_id();
 	return m->in_degree(id, pushes) == 0 && m->in_degree(id, pulls) == 0;
 }
 
-void phase::add(pipe_segment * s) {
+void phase::add(segment_base * segment) {
+	val_t s = segment->assert_pipe_segment();
 	if (count(s)) return;
 	if (is_initiator(s)) set_initiator(s);
 	m_segments.push_back(s);
@@ -176,8 +177,12 @@ void phase::add(pipe_segment * s) {
 	g->finish_times[s] = 0;
 }
 
-void phase::add_successor(pipe_segment * from, pipe_segment * to) {
+void phase::add_successor(val_t from, val_t to) {
 	g->edges[from].push_back(to);
+}
+
+void phase::add_data_structure(data_structure * ds) {
+	m_dataStructures.push_back(ds);
 }
 
 void phase::evacuate_all() const {
@@ -227,7 +232,7 @@ void phase::assign_memory(memory_size_type m) const {
 		bool done = true;
 		for (size_t i = 0; i < m_segments.size(); ++i) {
 			if (assigned[i]) continue;
-			pipe_segment * s = m_segments[i];
+			val_t s = m_segments[i];
 			memory_size_type min = s->get_minimum_memory();
 			double frac = s->get_memory_fraction();
 			double to_assign = frac/fraction * remaining;
@@ -242,7 +247,7 @@ void phase::assign_memory(memory_size_type m) const {
 		if (!done) continue;
 		for (size_t i = 0; i < m_segments.size(); ++i) {
 			if (assigned[i]) continue;
-			pipe_segment * s = m_segments[i];
+			val_t s = m_segments[i];
 			double frac = s->get_memory_fraction();
 			double to_assign = frac/fraction * remaining;
 			s->set_available_memory(static_cast<memory_size_type>(to_assign));
@@ -287,6 +292,7 @@ void graph_traits::calc_phases() {
 	ids_inv_t ids_inv;
 	size_t nextid = 0;
 	for (segment_map::mapit i = map.begin(); i != map.end(); ++i) {
+		if (0 == i->second->cast_pipe_segment()) continue; // ignore data structures
 		ids.insert(std::make_pair(i->first, nextid));
 		ids_inv.insert(std::make_pair(nextid, i->first));
 		++nextid;
@@ -296,7 +302,19 @@ void graph_traits::calc_phases() {
 
 	const segment_map::relmap_t relations = map.get_relations();
 	for (segment_map::relmapit i = relations.begin(); i != relations.end(); ++i) {
-		if (i->second.second != depends) phases.union_set(ids[i->first], ids[i->second.first]);
+		switch (i->second.second) {
+			case pushes:
+			case pulls:
+				phases.union_set(ids[i->first], ids[i->second.first]);
+				break;
+			case depends:
+				break;
+			case uses:
+				map.get(i->first)->assert_pipe_segment();
+				pipe_segment * used = map.get(i->second.first)->cast_pipe_segment();
+				if (used != 0) throw not_data_structure();
+				break;
+		}
 	}
 	// `phases` holds a map from segment to phase number
 
@@ -304,7 +322,16 @@ void graph_traits::calc_phases() {
 
 	// establish phase relationships
 	for (segment_map::relmapit i = relations.begin(); i != relations.end(); ++i) {
-		if (i->second.second == depends) g.depends(phases.find_set(ids[i->first]), phases.find_set(ids[i->second.first]));
+		switch (i->second.second) {
+			case pushes:
+			case pulls:
+				break;
+			case depends:
+				g.depends(phases.find_set(ids[i->first]), phases.find_set(ids[i->second.first]));
+				break;
+			case uses:
+				break;
+		}
 	}
 
 	// toposort the phase graph and find the phase numbers in the execution order
@@ -321,27 +348,41 @@ void graph_traits::calc_phases() {
 		*j = i > 0 && !g.is_depending(internalexec[i], internalexec[i-1]);
 	}
 	for (ids_inv_t::iterator i = ids_inv.begin(); i != ids_inv.end(); ++i) {
-		pipe_segment * representative = map.get(ids_inv[phases.find_set(i->first)]);
-		pipe_segment * current = map.get(i->second);
+		val_t representative = map.get(ids_inv[phases.find_set(i->first)]);
+		val_t current = map.get(i->second);
 		if (current == representative) continue;
+		pipe_segment * c = current->cast_pipe_segment();
+		if (c == 0) continue;
+		pipe_segment * r = representative->assert_pipe_segment();
 		for (size_t i = 0; i < m_phases.size(); ++i) {
-			if (m_phases[i].count(representative)) {
-				m_phases[i].add(current);
+			if (m_phases[i].count(r)) {
+				m_phases[i].add(c);
 				break;
 			}
 		}
 	}
 	for (segment_map::relmapit i = relations.begin(); i != relations.end(); ++i) {
-		if (i->second.second == depends) continue;
-		pipe_segment * from = map.get(i->first);
-		pipe_segment * to = map.get(i->second.first);
-		if (i->second.second == pulls) std::swap(from, to);
-		pipe_segment * representative = map.get(ids_inv[phases.find_set(ids[i->first])]);
-		for (size_t i = 0; i < m_phases.size(); ++i) {
-			if (m_phases[i].count(representative)) {
-				m_phases[i].add_successor(from, to);
+		pipe_segment * from;
+		pipe_segment * to;
+		pipe_segment * representative;
+		switch (i->second.second) {
+			case pushes:
+			case pulls:
+				from = map.get(i->first)->assert_pipe_segment();
+				to = map.get(i->second.first)->assert_pipe_segment();
+				if (i->second.second == pulls) std::swap(from, to);
+				representative
+					= map.get(ids_inv[phases.find_set(ids[i->first])])->assert_pipe_segment();
+				for (size_t i = 0; i < m_phases.size(); ++i) {
+					if (m_phases[i].count(representative)) {
+						m_phases[i].add_successor(from, to);
+						break;
+					}
+				}
 				break;
-			}
+			case depends:
+			case uses:
+				break;
 		}
 	}
 }
@@ -349,7 +390,7 @@ void graph_traits::calc_phases() {
 void phase::go(progress_indicator_base & pi) {
 	dfs_traversal<phase::segment_graph> dfs(*g);
 	dfs.dfs();
-	std::vector<pipe_segment *> order = dfs.toposort();
+	std::vector<val_t> order = dfs.toposort();
 	stream_size_type totalSteps = 0;
 	for (size_t i = 0; i < order.size(); ++i) {
 		order[i]->begin();

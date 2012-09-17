@@ -65,6 +65,7 @@ void pipeline_base::plot(std::ostream & out) {
 				out << '"' << name(segmap, i->second.first) << "\" -> \"" << name(segmap, i->first) << "\" [arrowhead=none,arrowtail=normal,dir=both];\n";
 				break;
 			case depends:
+			case uses:
 				out << '"' << name(segmap, i->second.first) << "\" -> \"" << name(segmap, i->first) << "\" [arrowhead=none,arrowtail=normal,dir=both,style=dashed];\n";
 				break;
 		}
