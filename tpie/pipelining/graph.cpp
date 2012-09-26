@@ -311,11 +311,7 @@ void graph_traits::calc_phases() {
 				phases.union_set(ids[i->first], ids[i->second.first]);
 				break;
 			case depends:
-				break;
 			case uses:
-				map.get(i->first)->assert_pipe_segment();
-				pipe_segment * used = map.get(i->second.first)->cast_pipe_segment();
-				if (used != 0) throw not_data_structure();
 				break;
 		}
 	}
@@ -376,15 +372,26 @@ void graph_traits::calc_phases() {
 				if (i->second.second == pulls) std::swap(from, to);
 				representative
 					= map.get(ids_inv[phases.find_set(ids[i->first])])->assert_pipe_segment();
-				for (size_t i = 0; i < m_phases.size(); ++i) {
-					if (m_phases[i].count(representative)) {
-						m_phases[i].add_successor(from, to);
+				for (size_t j = 0; j < m_phases.size(); ++j) {
+					if (m_phases[j].count(representative)) {
+						m_phases[j].add_successor(from, to);
 						break;
 					}
 				}
 				break;
 			case depends:
+				break;
 			case uses:
+				from = map.get(i->first)->assert_pipe_segment();
+				data_structure * used = map.get(i->second.first)->assert_data_structure();
+				representative
+					= map.get(ids_inv[phases.find_set(ids[i->first])])->assert_pipe_segment();
+				for (size_t j = 0; j < m_phases.size(); ++j) {
+					if (m_phases[j].count(representative)) {
+						m_phases[j].add_data_structure(used);
+						break;
+					}
+				}
 				break;
 		}
 	}
