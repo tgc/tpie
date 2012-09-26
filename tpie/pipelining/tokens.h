@@ -352,6 +352,21 @@ public:
 		return m_selfDataStructure;
 	}
 
+	inline void set_available_memory_at_most(memory_size_type availableMemory) {
+		if (m_availableMemory > 0 && availableMemory > m_availableMemory) return;
+		this->set_available_memory(availableMemory);
+	}
+
+	virtual void set_available_memory(memory_size_type availableMemory) {
+		m_availableMemory = availableMemory;
+	}
+
+	// Called on data structures by graph.cpp phase::finalize_data_structure_memory
+	inline void finalize_memory() {
+		m_minimumMemory = m_availableMemory;
+		m_memoryFraction = 0.0;
+	}
+
 protected:
 	inline segment_base()
 		: token(this)
@@ -391,10 +406,6 @@ protected:
 
 	inline void set_minimum_memory(memory_size_type minimumMemory) {
 		m_minimumMemory = minimumMemory;
-	}
-
-	virtual void set_available_memory(memory_size_type availableMemory) {
-		m_availableMemory = availableMemory;
 	}
 
 private:

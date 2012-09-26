@@ -168,27 +168,44 @@ bool phase::is_initiator(val_t s) {
 }
 
 void phase::add(segment_base * segment) {
-	val_t s = segment->assert_pipe_segment();
-	if (count(s)) return;
-	if (is_initiator(s)) set_initiator(s);
-	m_segments.push_back(s);
-	m_memoryFraction += s->get_memory_fraction();
-	m_minimumMemory += s->get_minimum_memory();
-	g->finish_times[s] = 0;
+	if (count(segment)) return;
+	val_t s = segment->cast_pipe_segment();
+	if (s != 0) {
+		if (is_initiator(s)) set_initiator(s);
+		g->finish_times[s] = 0;
+	}
+	m_segments.push_back(segment);
+	m_memoryFraction += segment->get_memory_fraction();
+	m_minimumMemory += segment->get_minimum_memory();
+}
+
+void phase::finalize_data_structure_memory() {
+	for (size_t i = 0; i < m_segments.size(); ++i) {
+		data_structure * ds = m_segments[i]->cast_data_structure();
+		if (ds == 0) continue;
+		ds->finalize_memory();
+	}
+}
+
+void phase::recalc_memory_parameters() {
+	m_memoryFraction = 0.0;
+	m_minimumMemory = 0;
+	for (size_t i = 0; i < m_segments.size(); ++i) {
+		segment_base * s = m_segments[i];
+		m_memoryFraction += s->get_memory_fraction();
+		m_minimumMemory += s->get_minimum_memory();
+	}
 }
 
 void phase::add_successor(val_t from, val_t to) {
 	g->edges[from].push_back(to);
 }
 
-void phase::add_data_structure(data_structure * ds) {
-	m_dataStructures.push_back(ds);
-}
-
 void phase::evacuate_all() const {
 	for (size_t i = 0; i < m_segments.size(); ++i) {
-		if (m_segments[i]->can_evacuate())
-			m_segments[i]->evacuate();
+		pipe_segment * p = m_segments[i]->cast_pipe_segment();
+		if (p && p->can_evacuate())
+			p->evacuate();
 	}
 }
 
@@ -196,6 +213,8 @@ const std::string & phase::get_name() const {
 	priority_type highest = std::numeric_limits<priority_type>::min();
 	size_t highest_segment = 0;
 	for (size_t i = 0; i < m_segments.size(); ++i) {
+		pipe_segment * p = m_segments[i]->cast_pipe_segment();
+		if (p == 0) continue;
 		if (m_segments[i]->get_name_priority() > highest) {
 			highest_segment = i;
 			highest = m_segments[i]->get_name_priority();
@@ -232,13 +251,15 @@ void phase::assign_memory(memory_size_type m) const {
 		bool done = true;
 		for (size_t i = 0; i < m_segments.size(); ++i) {
 			if (assigned[i]) continue;
-			val_t s = m_segments[i];
+			segment_base * s = m_segments[i];
 			memory_size_type min = s->get_minimum_memory();
 			double frac = s->get_memory_fraction();
-			double to_assign = frac/fraction * remaining;
+			double to_assign;
+			if (frac < 0.0001) to_assign = 0.0;
+			else to_assign = frac/fraction * remaining;
 			if (to_assign < min) {
 				done = false;
-				s->set_available_memory(min);
+				s->set_available_memory_at_most(min);
 				assigned[i] = true;
 				remaining -= min;
 				fraction -= frac;
@@ -247,10 +268,10 @@ void phase::assign_memory(memory_size_type m) const {
 		if (!done) continue;
 		for (size_t i = 0; i < m_segments.size(); ++i) {
 			if (assigned[i]) continue;
-			val_t s = m_segments[i];
+			segment_base * s = m_segments[i];
 			double frac = s->get_memory_fraction();
 			double to_assign = frac/fraction * remaining;
-			s->set_available_memory(static_cast<memory_size_type>(to_assign));
+			s->set_available_memory_at_most(static_cast<memory_size_type>(to_assign));
 		}
 		break;
 	}
@@ -264,7 +285,26 @@ graph_traits::graph_traits(const segment_map & map)
 }
 
 void graph_traits::go_all(stream_size_type n, Progress::base & pi, const memory_size_type mem) {
+	log_debug() << "Memory for pipelining: " << mem << " b" << std::endl;
 	if (mem == 0) log_warning() << "No memory for pipelining" << std::endl;
+
+	// First, assign memory in each phase to find out memory for data structures.
+	for (size_t i = 0; i < m_phases.size(); ++i) {
+		m_phases[i].assign_memory(mem);
+	}
+
+	// For each data structure, set minimum := assigned memory
+	// and memory_fraction := 0
+	for (size_t i = 0; i < m_phases.size(); ++i) {
+		m_phases[i].finalize_data_structure_memory();
+	}
+
+	// Recalculate m_minimumMemory and m_memoryFraction in each phase
+	for (size_t i = 0; i < m_phases.size(); ++i) {
+		m_phases[i].recalc_memory_parameters();
+	}
+
+	// Assign memory with fixed data structure memory
 	for (size_t i = 0; i < m_phases.size(); ++i) {
 		m_phases[i].assign_memory(mem);
 	}
@@ -388,7 +428,7 @@ void graph_traits::calc_phases() {
 					= map.get(ids_inv[phases.find_set(ids[i->first])])->assert_pipe_segment();
 				for (size_t j = 0; j < m_phases.size(); ++j) {
 					if (m_phases[j].count(representative)) {
-						m_phases[j].add_data_structure(used);
+						m_phases[j].add(used);
 						break;
 					}
 				}

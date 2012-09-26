@@ -47,7 +47,8 @@ public:
 	}
 
 	virtual void begin() /*override*/ {
-		m_pq = tpie_new<priority_queue<T> >();
+		log_debug() << "Memory for PQ: " << get_available_memory() << " b" << std::endl;
+		m_pq = tpie_new<priority_queue<T> >(get_available_memory());
 		m_ds.set<priority_queue<T> >(m_pq);
 	}
 

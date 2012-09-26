@@ -59,9 +59,7 @@ public:
 
 	void add_successor(val_t from, val_t to);
 
-	void add_data_structure(data_structure * ds);
-
-	inline size_t count(val_t s) {
+	inline size_t count(segment_base * s) {
 		for (size_t i = 0; i < m_segments.size(); ++i) {
 			if (m_segments[i] == s) return 1;
 		}
@@ -80,19 +78,28 @@ public:
 		return m_minimumMemory;
 	}
 
+	///////////////////////////////////////////////////////////////////////////
+	/// \brief Assign memory `m` to segments in phase based on their minimum
+	/// memory and memory fractions.
+	///
+	/// Called by graph_traits::go_all. Assumes that m_minimumMemory and
+	/// m_memoryFraction are set correctly.
+	///////////////////////////////////////////////////////////////////////////
 	void assign_memory(memory_size_type m) const;
 
 	const std::string & get_name() const;
 
 	std::string get_unique_id() const;
 
+	void finalize_data_structure_memory();
+
+	void recalc_memory_parameters();
+
 private:
 	std::auto_ptr<segment_graph> g;
 
 	/** a pointer is a weak reference to something that isn't reference counted. */
-	std::vector<val_t> m_segments;
-
-	std::vector<data_structure *> m_dataStructures;
+	std::vector<segment_base *> m_segments;
 
 	double m_memoryFraction;
 	memory_size_type m_minimumMemory;

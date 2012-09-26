@@ -528,10 +528,10 @@ bool data_structure_test() {
 	P::priority_queue_push_pull<test_t> pq;
 	expectvector = inputvector;
 	std::reverse(inputvector.begin(), inputvector.end());
-	pipeline p1 = input_vector(inputvector)
-		| pq.pusher();
-	pipeline p2 = pq.puller()
-		| output_vector(outputvector);
+	pipeline p1 = input_vector(inputvector).memory(0.0)
+		| pq.pusher().memory(0.0);
+	pipeline p2 = pq.puller().memory(0.0)
+		| output_vector(outputvector).memory(0.0);
 	p1.plot(log_info());
 	p1();
 	return check_test_vectors();
