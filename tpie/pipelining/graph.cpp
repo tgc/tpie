@@ -263,8 +263,11 @@ graph_traits::graph_traits(const segment_map & map)
 	calc_phases();
 }
 
-void graph_traits::go_all(stream_size_type n, Progress::base & pi) {
-	map.assert_authoritative();
+void graph_traits::go_all(stream_size_type n, Progress::base & pi, const memory_size_type mem) {
+	if (mem == 0) log_warning() << "No memory for pipelining" << std::endl;
+	for (size_t i = 0; i < m_phases.size(); ++i) {
+		m_phases[i].assign_memory(mem);
+	}
 	map.send_successors();
 	Progress::fp fp(&pi);
 	array<auto_ptr<Progress::sub> > subindicators(m_phases.size());

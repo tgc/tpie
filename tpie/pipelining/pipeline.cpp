@@ -79,12 +79,7 @@ void pipeline_base::operator()(stream_size_type items, progress_indicator_base &
 
 	segment_map::ptr map = m_segmap->find_authority();
 	graph_traits g(*map);
-	const phases_t & phases = g.phases();
-	if (mem == 0) log_warning() << "No memory for pipelining" << std::endl;
-	for (it i = phases.begin(); i != phases.end(); ++i) {
-		i->assign_memory(mem);
-	}
-	g.go_all(items, pi);
+	g.go_all(items, pi, mem);
 }
 
 } // namespace pipelining

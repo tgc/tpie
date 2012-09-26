@@ -123,7 +123,7 @@ struct graph_traits {
 		return m_phases;
 	}
 
-	void go_all(stream_size_type n, Progress::base & pi);
+	void go_all(stream_size_type n, Progress::base & pi, const memory_size_type mem);
 
 private:
 	const segment_map & map;
