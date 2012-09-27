@@ -38,17 +38,17 @@ class push_priority_queue_type : public pipe_segment {
 public:
 	typedef T item_type;
 
-	inline push_priority_queue_type(segment_token pushToken, data_structure ds)
+	inline push_priority_queue_type(segment_token pushToken, segment_token dataStructureToken)
 		: pipe_segment(pushToken)
-		, m_ds(ds)
+		, m_ds(dataStructureToken)
 	{
 		add_data_structure(m_ds);
 		set_name("Push PQ", PRIORITY_INSIGNIFICANT);
 	}
 
 	virtual void begin() /*override*/ {
-		log_debug() << "Memory for PQ: " << get_available_memory() << " b" << std::endl;
-		m_pq = tpie_new<priority_queue<T> >(get_available_memory());
+		log_debug() << "Memory for PQ: " << m_ds.get_available_memory() << " b" << std::endl;
+		m_pq = tpie_new<priority_queue<T> >(m_ds.get_available_memory());
 		m_ds.set<priority_queue<T> >(m_pq);
 	}
 
@@ -57,33 +57,26 @@ public:
 	}
 };
 
-template <typename T>
-pipe_end<termfactory_1<push_priority_queue_type<T>, priority_queue<T> &> >
-inline push_priority_queue(priority_queue<T> & pq) {
-	return termfactory_1<push_priority_queue_type<T>, priority_queue<T> &>
-		(pq);
-}
-
 template <typename T, typename dest_t>
 class pop_priority_queue_type : public pipe_segment {
 	dest_t dest;
-	data_structure m_ds;
+	data_structure * m_ds;
 	priority_queue<T> * m_pq;
 public:
 	typedef T item_type;
 
-	inline pop_priority_queue_type(dest_t dest, segment_token pushToken, data_structure ds)
+	inline pop_priority_queue_type(dest_t dest, segment_token pushToken, segment_token dataStructureToken)
 		: dest(dest)
-		, m_ds(ds)
 	{
 		add_push_destination(dest);
-		add_data_structure(m_ds);
 		add_dependency(pushToken);
+		m_ds = get_segment_map()->get(dataStructureToken)->assert_data_structure();
+		add_data_structure(*m_ds);
 		set_name("Pop PQ", PRIORITY_INSIGNIFICANT);
 	}
 
 	virtual void begin() /*override*/ {
-		m_pq = m_ds.get<priority_queue<T> >();
+		m_pq = m_ds->get<priority_queue<T> >();
 		set_steps(m_pq->size());
 	}
 
@@ -103,7 +96,7 @@ public:
 template <typename T>
 class pop_priority_queue_factory : public factory_base {
 	segment_token m_pushToken;
-	data_structure m_ds;
+	segment_token m_ds;
 
 public:
 	template <typename dest_t>
@@ -111,7 +104,7 @@ public:
 		typedef pop_priority_queue_type<T, dest_t> type;
 	};
 
-	pop_priority_queue_factory(segment_token pushToken, data_structure ds)
+	pop_priority_queue_factory(segment_token pushToken, segment_token ds)
 		: m_pushToken(pushToken)
 		, m_ds(ds)
 	{
@@ -134,12 +127,12 @@ inline pop_priority_queue(priority_queue<T> & pq) {
 template <typename T>
 class priority_queue_push_pull {
 	segment_token m_pushToken;
-	data_structure m_ds;
+	segment_token m_ds;
 
 public:
-	pipe_end<termfactory_2<push_priority_queue_type<T>, segment_token, data_structure> >
+	pipe_end<termfactory_2<push_priority_queue_type<T>, segment_token, segment_token> >
 	inline pusher() {
-		return termfactory_2<push_priority_queue_type<T>, segment_token, data_structure>
+		return termfactory_2<push_priority_queue_type<T>, segment_token, segment_token>
 			(m_pushToken, m_ds);
 	}
 
