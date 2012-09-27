@@ -46,6 +46,13 @@ public:
 		m_selfDataStructure = this;
 	}
 
+	data_structure(const segment_token & token)
+		: segment_base(token)
+	{
+		m_selfPipeSegment = 0;
+		m_selfDataStructure = this;
+	}
+
 	template <typename T>
 	void set(T * ds) {
 		get_segment_map()->find_authority()->set_data_structure(get_id(), ds);
