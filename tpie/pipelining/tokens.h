@@ -142,6 +142,8 @@ struct segment_map {
 		find_authority()->link(target->find_authority());
 	}
 
+	inline val_t get(const segment_token & token) const;
+
 	inline val_t get(id_t id) const {
 		mapit i = m_tokens.find(id);
 		if (i == m_tokens.end()) return 0;
@@ -425,6 +427,10 @@ protected:
 	pipe_segment * m_selfPipeSegment;
 	data_structure * m_selfDataStructure;
 };
+
+segment_map::val_t segment_map::get(const segment_token & token) const {
+	return get(token.id());
+}
 
 } // namespace pipelining
 
