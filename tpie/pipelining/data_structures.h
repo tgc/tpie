@@ -71,7 +71,7 @@ public:
 	{
 		add_push_destination(dest);
 		add_dependency(pushToken);
-		m_ds = get_segment_map()->get(dataStructureToken)->assert_data_structure();
+		m_ds = get_data_structure(dataStructureToken);
 		add_data_structure(*m_ds);
 		set_name("Pop PQ", PRIORITY_INSIGNIFICANT);
 	}

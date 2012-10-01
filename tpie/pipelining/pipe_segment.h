@@ -211,6 +211,10 @@ protected:
 		return pi;
 	}
 
+	data_structure * get_data_structure(const segment_token & tok) {
+		return get_segment_map()->get(tok)->assert_data_structure();
+	}
+
 	friend class phase;
 
 private:
