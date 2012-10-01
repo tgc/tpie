@@ -44,6 +44,7 @@ public:
 	{
 		add_data_structure(m_ds);
 		set_name("Push PQ", PRIORITY_INSIGNIFICANT);
+		m_ds.set_name("Priority queue");
 	}
 
 	virtual void begin() /*override*/ {
