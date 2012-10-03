@@ -21,7 +21,7 @@
 #define __TPIE_PIPELINING_PIPE_SEGMENT_H__
 
 #include <tpie/pipelining/exception.h>
-#include <tpie/pipelining/tokens.h>
+#include <tpie/pipelining/segment_base.h>
 #include <tpie/progress_indicator_base.h>
 #include <tpie/progress_indicator_null.h>
 #include <boost/any.hpp>

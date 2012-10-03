@@ -19,6 +19,7 @@
 
 #include <tpie/pipelining/tokens.h>
 #include <tpie/pipelining/pipe_segment.h>
+#include <tpie/pipelining/segment_base.h>
 
 namespace tpie {
 
@@ -106,6 +107,10 @@ size_t segment_map::out_degree(const relmap_t & map, id_t from, segment_relation
 		++i;
 	}
 	return res;
+}
+
+segment_map::val_t segment_map::get(const segment_token & token) const {
+	return get(token.id());
 }
 
 } // namespace pipelining

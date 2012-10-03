@@ -28,6 +28,7 @@
 // Core framework
 #include <tpie/pipelining/exception.h>
 #include <tpie/pipelining/tokens.h>
+#include <tpie/pipelining/segment_base.h>
 #include <tpie/pipelining/pipe_segment.h>
 #include <tpie/pipelining/graph.h>
 #include <tpie/pipelining/pipeline.h>

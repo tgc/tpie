@@ -17,6 +17,7 @@ set (PIPE_HEADERS
 	pipe_segment.h
 	pipeline.h
 	reverse.h
+	segment_base.h
 	segment_map_dump.h
 	sort.h
 	std_glue.h
