@@ -58,72 +58,45 @@ public:
 	}
 };
 
-template <typename T, typename dest_t>
-class pop_priority_queue_type : public pipe_segment {
-	dest_t dest;
-	data_structure * m_ds;
-	priority_queue<T> * m_pq;
+template <typename T>
+class pop_priority_queue_type {
 public:
-	typedef T item_type;
+	template <typename dest_t>
+	class type : public pipe_segment {
+		dest_t dest;
+		data_structure * m_ds;
+		priority_queue<T> * m_pq;
+	public:
+		typedef T item_type;
 
-	inline pop_priority_queue_type(dest_t dest, segment_token pushToken, segment_token dataStructureToken)
-		: dest(dest)
-	{
-		add_push_destination(dest);
-		add_dependency(pushToken);
-		m_ds = get_data_structure(dataStructureToken);
-		add_data_structure(*m_ds);
-		set_name("Pop PQ", PRIORITY_INSIGNIFICANT);
-	}
-
-	virtual void begin() /*override*/ {
-		m_pq = m_ds->get<priority_queue<T> >();
-		set_steps(m_pq->size());
-	}
-
-	virtual void go() /*override*/ {
-		while (!m_pq->empty()) {
-			dest.push(m_pq->top());
-			m_pq->pop();
-			step();
+		inline type(dest_t dest, segment_token pushToken, segment_token dataStructureToken)
+			: dest(dest)
+		{
+			add_push_destination(dest);
+			add_dependency(pushToken);
+			m_ds = get_data_structure(dataStructureToken);
+			add_data_structure(*m_ds);
+			set_name("Pop PQ", PRIORITY_INSIGNIFICANT);
 		}
-	}
 
-	virtual void end() /*override*/ {
-		tpie_delete(m_pq);
-	}
-};
+		virtual void begin() /*override*/ {
+			m_pq = m_ds->get<priority_queue<T> >();
+			set_steps(m_pq->size());
+		}
 
-template <typename T>
-class pop_priority_queue_factory : public factory_base {
-	segment_token m_pushToken;
-	segment_token m_ds;
+		virtual void go() /*override*/ {
+			while (!m_pq->empty()) {
+				dest.push(m_pq->top());
+				m_pq->pop();
+				step();
+			}
+		}
 
-public:
-	template <typename dest_t>
-	struct generated {
-		typedef pop_priority_queue_type<T, dest_t> type;
+		virtual void end() /*override*/ {
+			tpie_delete(m_pq);
+		}
 	};
-
-	pop_priority_queue_factory(segment_token pushToken, segment_token ds)
-		: m_pushToken(pushToken)
-		, m_ds(ds)
-	{
-	}
-
-	template <typename dest_t>
-	pop_priority_queue_type<T, dest_t> construct(const dest_t & dest) const {
-		pop_priority_queue_type<T, dest_t> res(dest, m_pushToken, m_ds);
-		this->init_segment(res);
-		return res;
-	}
 };
-
-template <typename T>
-pipe_begin<pop_priority_queue_factory<T> >
-inline pop_priority_queue(priority_queue<T> & pq) {
-	return pop_priority_queue_factory<T>(pq);
-}
 
 template <typename T>
 class priority_queue_push_pull {
@@ -137,9 +110,9 @@ public:
 			(m_pushToken, m_ds);
 	}
 
-	pipe_begin<pop_priority_queue_factory<T> >
+	pipe_begin<tempfactory_2<pop_priority_queue_type<T>, segment_token, segment_token> >
 	inline puller() {
-		return pop_priority_queue_factory<T>
+		return tempfactory_2<pop_priority_queue_type<T>, segment_token, segment_token>
 			(m_pushToken, m_ds);
 	}
 };
