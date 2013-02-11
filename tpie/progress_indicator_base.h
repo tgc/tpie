@@ -60,7 +60,7 @@ enum description_importance {
 /// status will be advanced by stepValue units. 
 ///////////////////////////////////////////////////////////////////////////////
 
-class progress_indicator_base {
+class TPIE_PUBLIC progress_indicator_base {
 public:
 	///////////////////////////////////////////////////////////////////////////
 	/// Initializes the indicator.
@@ -205,10 +205,10 @@ private:
 	///////////////////////////////////////////////////////////////////////////
 	/// Makes sure m_threshold has been set.
 	///////////////////////////////////////////////////////////////////////////
-	static void compute_threshold();
+	TPIE_PUBLIC  static void compute_threshold();
 
-	progress_indicator_base();
-	progress_indicator_base(const progress_indicator_base& other);
+	TPIE_PUBLIC progress_indicator_base();
+	TPIE_PUBLIC progress_indicator_base(const progress_indicator_base& other);
 };
 
 }  //  tpie namespace

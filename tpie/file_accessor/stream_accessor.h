@@ -32,7 +32,7 @@ namespace tpie {
 namespace file_accessor {
 
 template <typename file_accessor_t>
-class stream_accessor {
+class TPIE_PUBLIC stream_accessor {
 private:
 	inline void validate_header(const stream_header_t & header);
 	inline void fill_header(stream_header_t & header, bool clean);

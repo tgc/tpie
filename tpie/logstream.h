@@ -34,12 +34,12 @@
 
 namespace tpie {
 
-struct log_target {
+struct TPIE_PUBLIC log_target {
 	virtual void log(log_level level, const char * message, size_t message_size) = 0;
 	virtual ~log_target() { }
 };
 
-class log_stream_buf: public std::basic_streambuf<char, std::char_traits<char> >  {
+class TPIE_PUBLIC log_stream_buf: public std::basic_streambuf<char, std::char_traits<char> >  {
 private:
 	const static size_t buff_size = 2048;
 	const static size_t max_targets = 8;
@@ -73,7 +73,7 @@ public:
 /// \ref log_warning(), \ref log_app_debug(), \ref log_debug() and
 /// \ref log_mem_debug().
 ///////////////////////////////////////////////////////////////////////////////
-class logstream: public std::ostream {
+class TPIE_PUBLIC logstream: public std::ostream {
 private:
 	log_stream_buf m_buff;
 public:
@@ -107,7 +107,7 @@ public:
 /// The logmanip template is based on the omanip template from iomanip.h
 /// in the libg++ sources.
 ///////////////////////////////////////////////////////////////////////////////
-template <class TP> class logmanip {
+template <class TP> class TPIE_PUBLIC logmanip {
 	logstream& (*_f)(logstream&, TP);
 	TP _a;
 public:
@@ -126,8 +126,8 @@ public:
 	}
 };
 
-logstream& manip_level(logstream& tpl, log_level p);
-logmanip<log_level> setlevel(log_level p);
+TPIE_PUBLIC logstream& manip_level(logstream& tpl, log_level p);
+TPIE_PUBLIC logmanip<log_level> setlevel(log_level p);
 
 }  //  tpie namespace
 

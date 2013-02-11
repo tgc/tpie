@@ -30,7 +30,7 @@
 
 namespace tpie {
 
-class teststream_buf: public std::basic_streambuf<char, std::char_traits<char> > {
+class TPIE_PUBLIC teststream_buf: public std::basic_streambuf<char, std::char_traits<char> > {
 private:
 	const static size_t line_size = 2048;
 	char m_line[line_size];
@@ -42,7 +42,7 @@ public:
 	virtual int sync();
 };
 
-class teststream: public std::ostream  {
+class TPIE_PUBLIC teststream: public std::ostream {
 private:
 	teststream_buf m_buff;
 	size_t failed;
@@ -66,9 +66,9 @@ public:
 };
 
 
-testmanip<bool> result(bool success);
-testmanip<bool> success();
-testmanip<bool> failure();
+TPIE_PUBLIC testmanip<bool> result(bool success);
+TPIE_PUBLIC testmanip<bool> success();
+TPIE_PUBLIC testmanip<bool> failure();
 
 #define TEST_ENSURE(cond, message) {									\
 		if (! (cond) ) {												\
@@ -86,8 +86,7 @@ testmanip<bool> failure();
 		}																\
 	}																	
 	
-
-class tests;
+class TPIE_PUBLIC tests;
 
 namespace bits {
 	class test_runner {
@@ -104,7 +103,7 @@ namespace bits {
 	};
 } // namespace bits
 
-class tests {
+class TPIE_PUBLIC tests {
 public:
 	static const size_t lineLength = 79;
 
@@ -312,7 +311,7 @@ struct magic_cast_help<std::string, bool> {
 };
 
 template <typename dst, typename src>
-dst magic_cast(const src & s) {
+inline dst magic_cast(const src & s) {
 	return magic_cast_help<src, dst>()(s);
 }
 	

@@ -31,7 +31,7 @@
 namespace tpie {
 
 /** A simple logger that writes messages to a tpie temporary file */
-class file_log_target: public log_target {
+class TPIE_PUBLIC file_log_target: public log_target {
 public:
 	std::ofstream m_out;
 	std::string m_path;
@@ -50,7 +50,7 @@ public:
 };
 
 /** A simple logger that writes messages to stderr */
-class stderr_log_target: public log_target {
+class TPIE_PUBLIC stderr_log_target: public log_target {
 public:
 	log_level m_threshold;
 
@@ -74,19 +74,19 @@ public:
 /// \brief Returns the file name of the log stream.
 /// This assumes that init_default_log has been called.
 ///////////////////////////////////////////////////////////////////////////
-const std::string& log_name();
+TPIE_PUBLIC const std::string& log_name();
 
 ///////////////////////////////////////////////////////////////////////////////
 /// \internal \brief Used by tpie_init to initialize the log subsystem.
 ///////////////////////////////////////////////////////////////////////////////
-void init_default_log();
+TPIE_PUBLIC void init_default_log();
 
 ///////////////////////////////////////////////////////////////////////////////
 /// \internal \brief Used by tpie_finish to deinitialize the log subsystem.
 ///////////////////////////////////////////////////////////////////////////////
-void finish_default_log();
+TPIE_PUBLIC void finish_default_log();
 
-extern logstream log_singleton;
+TPIE_PUBLIC extern logstream log_singleton;
 
 ///////////////////////////////////////////////////////////////////////////
 /// \brief Returns the only logstream object. 
@@ -128,7 +128,7 @@ inline logstream & log_debug() {return get_log() << setlevel(LOG_DEBUG);}
 ///////////////////////////////////////////////////////////////////////////////
 inline logstream & log_mem_debug() {return get_log() << setlevel(LOG_MEM_DEBUG);}
 
-class scoped_log_enabler {
+class TPIE_PUBLIC scoped_log_enabler {
 private:
 	bool m_orig;
 public:
