@@ -148,8 +148,10 @@ public:
 	void insert(Key v) {
 		block_buffer buf;
 		read_root(buf);
-		memory_size_type i = find_key(buf, v);
+		std::vector<std::pair<block_handle, memory_size_type> > path;
+		key_path(buf, v, path);
 		b_tree_block<Key> block(buf, fanout());
+		size_t i = path.size();
 		if (block.full()) {
 			block_buffer left;
 			block_buffer right;
@@ -192,12 +194,12 @@ private:
 	/// Reuses the given block buffer when changing node and returns the index
 	/// in the block where the key is found or should be inserted.
 	///////////////////////////////////////////////////////////////////////////
-	memory_size_type find_key(block_buffer & buf, Key v) {
-		log_debug() << "Find_key " << v << std::endl;
+	memory_size_type key_path(block_buffer & buf, Key v, std::vector<std::pair<block_handle, memory_size_type> > & path) {
+		log_debug() << "key_path " << v << std::endl;
 		while (true) {
 			b_tree_block<Key> b(buf, fanout());
 
-			log_debug() << "Find_key iteration" << std::endl;
+			log_debug() << "key_path iteration" << std::endl;
 			for (size_t i = 0; i < b.keys(); ++i) log_debug() << b.key(i) << ' ';
 			log_debug() << std::endl;
 			for (size_t i = 0; i <= b.keys(); ++i) log_debug() << b.child(i) << ' ';
@@ -207,10 +209,12 @@ private:
 			for (i = 0; i != b.keys(); ++i)
 				if (!m_comp(b.key(i), v)) break;
 
+			path.push_back(std::make_pair(buf.get_handle(), i));
+
 			if (i != b.keys() && !m_comp(v, b.key(i)))
-				return i; // found by anti-symmetry
+				return; // found by anti-symmetry
 			else if (b.child(i) == block_handle(0))
-				return i; // cannot seek any further
+				return; // cannot seek any further
 			else {
 				m_blocks.read_block(b.child(i), buf);
 			}
