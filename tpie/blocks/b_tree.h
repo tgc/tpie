@@ -70,7 +70,7 @@ public:
 	}
 
 	bool underfull() const {
-		return keys()*2 < m_fanout;
+		return keys() < m_fanout/2;
 	}
 
 	Key key(memory_size_type idx) const {
