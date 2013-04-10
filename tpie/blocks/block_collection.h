@@ -140,6 +140,7 @@ public:
 
 	void close() {
 		if (m_open) {
+			write_allocation_bitmap();
 			m_accessor.close();
 			m_open = false;
 			m_allocationBitmap.resize(0);
