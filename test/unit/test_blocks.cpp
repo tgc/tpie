@@ -35,7 +35,7 @@ bool b_tree_test() {
 }
 
 bool b_tree_test_2(size_t items) {
-	size_t p = tpie::next_prime(items);
+	size_t p = tpie::next_prime(items+1);
 	tpie::log_debug() << "Generating items " << p << "*i%" << items << " for i in [0," << items << ")" << std::endl;
 	tpie::blocks::b_tree<size_t> t;
 	for (size_t i = 0; i < items; ++i) {
