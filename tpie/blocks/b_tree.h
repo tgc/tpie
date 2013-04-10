@@ -43,6 +43,13 @@ public:
 template <typename Key>
 class b_tree_block {
 public:
+	static memory_size_type calculate_fanout(memory_size_type blockSize) {
+		blockSize -= sizeof(b_tree_block_header);
+		blockSize -= sizeof(block_handle); // one more child pointer than keys
+		memory_size_type perKey = sizeof(block_handle) + sizeof(Key);
+		return blockSize / perKey; // floored division
+	}
+
 	b_tree_block(block_buffer & buffer, memory_size_type fanout) {
 		char * children = buffer.get() + sizeof(b_tree_block_header);
 		char * keys = children + (1+fanout) * sizeof(block_handle);
@@ -268,8 +275,12 @@ private:
 		boost::filesystem::remove(m_tempFile.path());
 	}
 
+	memory_size_type block_size() {
+		return block_collection::default_block_size();
+	}
+
 	memory_size_type fanout() {
-		return 4;
+		return b_tree_block<Key>::calculate_fanout(block_size());
 	}
 
 	void read_root(block_buffer & b) {
