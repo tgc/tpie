@@ -27,6 +27,18 @@ namespace tpie {
 
 namespace blocks {
 
+///////////////////////////////////////////////////////////////////////////////
+/// \brief  Pointer to a block in a block collection on disk.
+///
+/// Essentially a strong typedef of a stream_size_type.
+/// Block allocation is administered by the block collection framework, so it
+/// does not make sense to perform integer arithmetic on the block handles.
+///
+/// The block_handle 0 is never assigned to user code, as it is reserved for
+/// the root allocation bitmap.
+/// As such, block_handle(0) may be used as a sentinel in user code, similar to
+/// the well-known NULL pointer from C.
+///////////////////////////////////////////////////////////////////////////////
 class block_handle {
 public:
 	explicit block_handle(stream_size_type id)
@@ -55,6 +67,21 @@ private:
 	stream_size_type m_id;
 };
 
+///////////////////////////////////////////////////////////////////////////////
+/// \brief  Buffer corresponding to a single block on disk.
+///
+/// Passed to read_block, write_block, get_free_block and others in the
+/// block_collection class.
+///
+/// Access the underlying byte buffer through get() which returns a pointer to
+/// the raw buffer.
+///
+/// Access the byte size of the buffer through size().
+/// To free the memory allocated for this buffer, call resize(0).
+///
+/// Get or set the block handle associated to this buffer with get_handle and
+/// set_handle.
+///////////////////////////////////////////////////////////////////////////////
 class block_buffer {
 public:
 	block_buffer() {
