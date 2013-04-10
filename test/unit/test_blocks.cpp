@@ -21,11 +21,16 @@
 #include <tpie/blocks/b_tree.h>
 
 bool b_tree_test() {
+	bool result = true;
 	tpie::blocks::b_tree<int> t;
 	for (int i = 0; i < 100; ++i) {
 		t.insert((3*i) % 100);
+		if (!t.count((i/2*3) % 100)) {
+			tpie::log_error() << "Missing element " << (i/2*3)%100 << " from B tree" << std::endl;
+			result = false;
+		}
 	}
-	return true;
+	return result;
 }
 
 int main(int argc, char ** argv) {
