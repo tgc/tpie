@@ -33,6 +33,14 @@ struct b_tree_block_header {
 };
 
 template <typename Key>
+class key_ops {
+public:
+	typedef Key * ptr_type;
+	static ptr_type get_ptr(Key & k)    { return &k; }
+	static Key      get_val(ptr_type p) { return *p; }
+};
+
+template <typename Key>
 class b_tree_block {
 public:
 	b_tree_block(block_buffer & buffer, memory_size_type fanout) {
@@ -66,57 +74,82 @@ public:
 		return m_children[idx];
 	}
 
-	void insert(memory_size_type i, Key k) {
-		block_handle c = block_handle(0);
+	void insert(memory_size_type i, Key k, block_handle leftChild, block_handle rightChild) {
+		if (full()) throw exception("Insert on full block");
+
+		m_children[i] = leftChild;
+
+		block_handle c = rightChild;
 		while (i < keys()) {
-			std::swap(m_children[i], c);
+			std::swap(m_children[i+1], c);
 			std::swap(m_keys[i], k);
 			++i;
 		}
-		m_children[i] = c;
+		m_children[i+1] = c;
 		m_keys[i] = k;
 		++m_header->keys;
 	}
 
 	Key split_insert(memory_size_type insertIndex,
 					 Key insertKey,
+					 block_handle leftChild,
+					 block_handle rightChild,
 					 block_buffer & leftBuf,
 					 block_buffer & rightBuf)
 	{
-		for (memory_size_type i = 0; i != keys(); ++i)
-			if (child(i) != 0) throw exception("split_insert on non-leaf");
+		if (keys() != m_fanout) throw exception("split_insert on non-full block");
 
-		b_tree_block<Key> left(leftBuf, m_fanout);
-		b_tree_block<Key> right(rightBuf, m_fanout);
+		typedef key_ops<Key> O;
+		typedef typename O::ptr_type KeyPtr;
 
-		if (left.keys() != 0) throw exception("split_insert to non-empty left");
-		if (right.keys() != 0) throw exception("split_insert to non-empty right");
+		std::vector<block_handle> children(m_fanout+2);
+		std::vector<KeyPtr> keys(m_fanout+1);
+
+		{
+			for (memory_size_type i = 0; i < m_fanout; ++i) {
+				memory_size_type dest = i;
+				if (insertIndex <= i) ++dest;
+				children[dest] = m_children[i];
+				keys[dest] = O::get_ptr(m_keys[i]);
+			}
+			children[m_fanout+1] = m_children[m_fanout];
+
+			keys[insertIndex] = O::get_ptr(insertKey);
+			children[insertIndex] = leftChild;
+			children[insertIndex+1] = rightChild;
+		}
 
 		Key midKey;
-		bool nextIsMid = false;
 
-		for (memory_size_type i = 0; i < keys() || i == insertIndex; ++i) {
-			b_tree_block<Key> & dest = left.underfull() ? left : right;
+		{
+			b_tree_block<Key> left(leftBuf, m_fanout);
+			b_tree_block<Key> right(rightBuf, m_fanout);
 
-			Key k;
+			if (left.keys() != 0) throw exception("split_insert to non-empty left");
+			if (right.keys() != 0) throw exception("split_insert to non-empty right");
 
-			if (i == insertIndex) {
-				k = insertKey;
-				--i, --insertIndex;
-			} else {
-				k = key(i);
+			memory_size_type in = 0;
+			memory_size_type out;
+			for (out = 0; in*2 < m_fanout; ++out) {
+				left.m_children[out] = children[in];
+				left.m_keys[out] = O::get_val(keys[in]);
+				++in;
 			}
+			left.m_children[out] = children[in];
+			left.m_header->keys = static_cast<uint64_t>(out);
+			log_debug() << "Wrote " << out << " keys to left block" << std::endl;
 
-			if (nextIsMid) {
-				midKey = k;
-				nextIsMid = false;
-			} else {
-				dest.insert(dest.keys(), k);
+			midKey = O::get_val(keys[in]);
+			++in;
 
-				// if we just filled up the destination,
-				// next key is the middle key
-				nextIsMid = !dest.underfull();
+			for (out = 0; in < m_fanout+1; ++out) {
+				right.m_children[out] = children[in];
+				right.m_keys[out] = O::get_val(keys[in]);
+				++in;
 			}
+			right.m_children[out] = children[in];
+			right.m_header->keys = static_cast<uint64_t>(out);
+			log_debug() << "Wrote " << out << " keys to right block" << std::endl;
 		}
 
 		m_header->keys = 0;
@@ -130,8 +163,37 @@ private:
 	memory_size_type m_fanout;
 };
 
+class b_tree_path {
+public:
+	void follow(block_handle b, memory_size_type index) {
+		m_components.push_back(std::make_pair(b, index));
+	}
+
+	void parent() {
+		m_components.pop_back();
+	}
+
+	block_handle current_block() const {
+		return m_components[m_components.size()-1].first;
+	}
+
+	memory_size_type current_index() const {
+		return m_components[m_components.size()-1].second;
+	}
+
+	bool empty() const {
+		return m_components.empty();
+	}
+
+private:
+	std::vector<std::pair<block_handle, memory_size_type> > m_components;
+};
+
 template <typename Key>
 class b_tree {
+	/* Antisymmetry: If `comp` is a Compare object, and `a` and `b` are Keys,
+	 * then `a` and `b` are considered equal if !comp(a, b) and !comp(b, a).
+	 */
 	typedef std::less<Key> Compare;
 
 public:
@@ -148,23 +210,54 @@ public:
 	void insert(Key v) {
 		block_buffer buf;
 		read_root(buf);
-		std::vector<std::pair<block_handle, memory_size_type> > path;
-		key_path(buf, v, path);
+		b_tree_path p = key_path(buf, v);
 		b_tree_block<Key> block(buf, fanout());
-		size_t i = path.size();
-		if (block.full()) {
+
+		memory_size_type i = p.current_index();
+
+		block_handle leftChild(0);
+		block_handle rightChild(0);
+
+		while (block.full()) {
 			block_buffer left;
 			block_buffer right;
 			m_blocks.get_free_block(left);
 			m_blocks.get_free_block(right);
-			block.split_insert(i, v, left, right);
-			m_blocks.write_block(buf);
+			v = block.split_insert(i, v, leftChild, rightChild, left, right);
 			m_blocks.write_block(left);
 			m_blocks.write_block(right);
-		} else {
-			block.insert(i, v);
-			m_blocks.write_block(buf);
+			leftChild = left.get_handle();
+			rightChild = right.get_handle();
+
+			p.parent();
+			if (p.empty()) break;
+
+			m_blocks.free_block(buf);
+
+			i = p.current_index();
+			m_blocks.read_block(p.current_block(), buf);
 		}
+
+		if (p.empty()) {
+			if (buf.get_handle() != m_root) throw exception("Didn't end up at the root");
+			if (block.keys() != 0) throw exception("Unexpected nonempty root");
+			i = 0;
+		}
+
+		block.insert(i, v, leftChild, rightChild);
+		m_blocks.write_block(buf);
+	}
+
+	memory_size_type count(Key v) {
+		block_buffer buf;
+		read_root(buf);
+		b_tree_path p = key_path(buf, v);
+		b_tree_block<Key> block(buf, fanout());
+		memory_size_type i = p.current_index();
+		if (i == block.keys()) return 0;
+		if (m_comp(v, block.key(i))) return 0;
+		if (m_comp(block.key(i), v)) return 0;
+		return 1;
 	}
 
 private:
@@ -194,12 +287,14 @@ private:
 	/// Reuses the given block buffer when changing node and returns the index
 	/// in the block where the key is found or should be inserted.
 	///////////////////////////////////////////////////////////////////////////
-	memory_size_type key_path(block_buffer & buf, Key v, std::vector<std::pair<block_handle, memory_size_type> > & path) {
+	b_tree_path key_path(block_buffer & buf, Key v) {
+		b_tree_path res;
+
 		log_debug() << "key_path " << v << std::endl;
 		while (true) {
 			b_tree_block<Key> b(buf, fanout());
 
-			log_debug() << "key_path iteration" << std::endl;
+			log_debug() << "key_path iteration visiting block " << buf.get_handle() << std::endl;
 			for (size_t i = 0; i < b.keys(); ++i) log_debug() << b.key(i) << ' ';
 			log_debug() << std::endl;
 			for (size_t i = 0; i <= b.keys(); ++i) log_debug() << b.child(i) << ' ';
@@ -209,16 +304,17 @@ private:
 			for (i = 0; i != b.keys(); ++i)
 				if (!m_comp(b.key(i), v)) break;
 
-			path.push_back(std::make_pair(buf.get_handle(), i));
+			res.follow(buf.get_handle(), i);
 
 			if (i != b.keys() && !m_comp(v, b.key(i)))
-				return; // found by anti-symmetry
+				break; // found by anti-symmetry
 			else if (b.child(i) == block_handle(0))
-				return; // cannot seek any further
-			else {
+				break; // cannot seek any further
+			else
 				m_blocks.read_block(b.child(i), buf);
-			}
 		}
+
+		return res;
 	}
 
 	tpie::temp_file m_tempFile;

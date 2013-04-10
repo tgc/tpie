@@ -188,6 +188,18 @@ public:
 		buf.resize(block_size());
 	}
 
+	void free_block(block_handle handle) {
+		stream_size_type blockID = handle;
+		if (blockID >= block_size()) throw exception("Block handle out of bounds");
+		char * const a = m_allocationBitmap.get();
+		a[blockID] = 0;
+		log_debug() << "Mark free block " << blockID << std::endl;
+	}
+
+	void free_block(block_buffer & buf) {
+		free_block(buf.get_handle());
+	}
+
 	void read_block(block_handle id, block_buffer & buf) {
 		buf.set_handle(id);
 		buf.resize(block_size());
