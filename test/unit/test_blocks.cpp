@@ -19,6 +19,7 @@
 
 #include "common.h"
 #include <tpie/blocks/b_tree.h>
+#include <tpie/prime.h>
 
 bool b_tree_test() {
 	bool result = true;
@@ -33,8 +34,34 @@ bool b_tree_test() {
 	return result;
 }
 
+bool b_tree_test_2(size_t items) {
+	size_t p = tpie::next_prime(items);
+	tpie::log_debug() << "Generating items " << p << "*i%" << items << " for i in [0," << items << ")" << std::endl;
+	tpie::blocks::b_tree<size_t> t;
+	for (size_t i = 0; i < items; ++i) {
+		t.insert(p*i%items);
+	}
+	std::vector<size_t> output;
+	output.reserve(items);
+	t.in_order_dump(std::back_inserter(output));
+
+	if (output.size() != items) {
+		tpie::log_error() << "B tree dump output incorrect no. of items" << std::endl;
+		return false;
+	}
+
+	for (size_t i = 0; i < items; ++i) {
+		if (output[i] != i) {
+			tpie::log_error() << "B tree dump incorrect @ " << i << std::endl;
+			return false;
+		}
+	}
+	return true;
+}
+
 int main(int argc, char ** argv) {
 	return tpie::tests(argc, argv)
 	.test(b_tree_test, "b_tree")
+	.test(b_tree_test_2, "b_tree_2", "n", static_cast<size_t>(1000))
 	;
 }
