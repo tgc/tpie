@@ -137,7 +137,6 @@ public:
 			}
 			left.m_children[out] = children[in];
 			left.m_header->keys = static_cast<uint64_t>(out);
-			log_debug() << "Wrote " << out << " keys to left block" << std::endl;
 
 			midKey = O::get_val(keys[in]);
 			++in;
@@ -149,7 +148,6 @@ public:
 			}
 			right.m_children[out] = children[in];
 			right.m_header->keys = static_cast<uint64_t>(out);
-			log_debug() << "Wrote " << out << " keys to right block" << std::endl;
 		}
 
 		m_header->keys = 0;
@@ -290,15 +288,8 @@ private:
 	b_tree_path key_path(block_buffer & buf, Key v) {
 		b_tree_path res;
 
-		log_debug() << "key_path " << v << std::endl;
 		while (true) {
 			b_tree_block<Key> b(buf, fanout());
-
-			log_debug() << "key_path iteration visiting block " << buf.get_handle() << std::endl;
-			for (size_t i = 0; i < b.keys(); ++i) log_debug() << b.key(i) << ' ';
-			log_debug() << std::endl;
-			for (size_t i = 0; i <= b.keys(); ++i) log_debug() << b.child(i) << ' ';
-			log_debug() << std::endl;
 
 			memory_size_type i;
 			for (i = 0; i != b.keys(); ++i)
