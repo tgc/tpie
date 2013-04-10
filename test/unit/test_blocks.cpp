@@ -39,7 +39,12 @@ bool b_tree_test_2(size_t items) {
 	tpie::log_debug() << "Generating items " << p << "*i%" << items << " for i in [0," << items << ")" << std::endl;
 	tpie::blocks::b_tree<size_t> t;
 	for (size_t i = 0; i < items; ++i) {
-		t.insert(p*i%items);
+		try {
+			t.insert(p*i%items);
+		} catch (...) {
+			tpie::log_error() << "Exception after " << i << " insertions" << std::endl;
+			throw;
+		}
 	}
 	std::vector<size_t> output;
 	output.reserve(items);
