@@ -62,6 +62,14 @@ public:
 	static Key      get_val(ptr_type p) { return *p; }
 };
 
+enum fuse_result {
+	/** `left` and `right` are still in use. */
+	fuse_share,
+
+	/** All of `right` was merged into `left`. */
+	fuse_merge
+};
+
 template <typename Traits>
 class b_tree_block {
 	typedef typename Traits::Key Key;
@@ -102,6 +110,13 @@ public:
 
 	block_handle child(memory_size_type idx) const {
 		return m_children[idx];
+	}
+
+	void erase(memory_size_type idx) {
+		for (memory_size_type i = idx+1; i != keys(); ++i) {
+			m_keys[i-1] = m_keys[i];
+		}
+		--m_header->keys;
 	}
 
 	void insert(memory_size_type i, Key k, block_handle leftChild, block_handle rightChild) {
@@ -182,6 +197,63 @@ public:
 
 		m_header->keys = 0;
 		return midKey;
+	}
+
+	fuse_result fuse(memory_size_type rightIndex,
+					 block_buffer & leftBuf,
+					 block_buffer & rightBuf)
+	{
+		b_tree_block<Traits> left(leftBuf, m_fanout);
+		b_tree_block<Traits> right(rightBuf, m_fanout);
+
+		std::vector<Key> keys(left.keys() + 1 + right.keys());
+		std::vector<block_handle> children(left.keys() + right.keys() + 2);
+
+		{
+			memory_size_type output = 0;
+			for (memory_size_type i = 0; i < left.keys(); ++i) {
+				keys[output] = left.key(i);
+				children[output] = left.child(i);
+				++output;
+			}
+			keys[output] = key(rightIndex-1);
+			children[output] = left.child(output);
+			++output;
+			for (memory_size_type i = 0; i < right.keys(); ++i) {
+				keys[output] = right.key(i);
+				children[output] = right.child(i);
+				++output;
+			}
+		}
+
+		if (keys.size() <= m_fanout) {
+			std::copy(keys.begin(), keys.end(), &left.m_keys[0]);
+			std::copy(children.begin(), children.end(), &left.m_children[0]);
+			left.m_header->keys = static_cast<uint64_t>(keys.size());
+
+			for (memory_size_type i = rightIndex; i < this->keys(); ++i) {
+				m_keys[i-1] = m_keys[i];
+				m_children[i] = m_children[i+1];
+			}
+			--m_header->keys;
+
+			return fuse_merge;
+
+		} else {
+
+			memory_size_type half = keys.size()/2;
+			std::copy(keys.begin(), keys.begin() + half, &left.m_keys[0]);
+			std::copy(children.begin(), children.begin() + (half + 1), &left.m_children[0]);
+			left.m_header->keys = static_cast<uint64_t>(half);
+
+			m_keys[rightIndex-1] = keys[half];
+
+			std::copy(keys.begin() + 1, keys.end(), &right.m_keys[0]);
+			std::copy(children.begin() + 1, children.end(), &right.m_children[0]);
+			left.m_header->keys = static_cast<uint64_t>(keys.size() - half - 1);
+
+			return fuse_share;
+		}
 	}
 
 private:
@@ -272,6 +344,54 @@ public:
 
 		block.insert(i, k, leftChild, rightChild);
 		m_blocks.write_block(buf);
+	}
+
+	void erase(Key k) {
+		block_buffer buf;
+		read_root(buf);
+		b_tree_path p = key_path(buf, k);
+		b_tree_block<Traits> block(buf, fanout());
+
+		memory_size_type idx = p.current_index();
+		log_debug() << "erase key " << k << " in block " << p.current_block() << "/" << buf.get_handle() << " idx " << idx << std::endl;
+
+		if (idx == block.keys() || m_comp(block.key(idx), k)) {
+			log_debug() << "erase non-existing key " << k << " " << idx << "; noop." << std::endl;
+			return;
+		}
+
+		block.erase(idx);
+		m_blocks.write_block(buf);
+
+		while (block.underfull()) {
+			memory_size_type i = p.current_index();
+			p.parent();
+			if (p.empty()) {
+				log_debug() << "Erase update root from " << m_root << " to " << buf.get_handle() << std::endl;
+				m_root = buf.get_handle();
+				break;
+			}
+			m_blocks.read_block(p.current_block(), buf);
+			if (block.keys() < 2) throw exception("About to fuse with less than two children");
+			memory_size_type rightIndex = (i == 0) ? 1 : i;
+			block_buffer left;
+			block_buffer right;
+			m_blocks.read_block(block.child(rightIndex-1), left);
+			m_blocks.read_block(block.child(rightIndex), right);
+			switch (block.fuse(rightIndex, left, right)) {
+				case fuse_share:
+					log_debug() << "Erase fuse_share of " << left.get_handle() << " and " << right.get_handle() << std::endl;
+					m_blocks.write_block(left);
+					m_blocks.write_block(right);
+					break;
+				case fuse_merge:
+					log_debug() << "Erase fuse_merge of " << left.get_handle() << " and " << right.get_handle() << std::endl;
+					m_blocks.write_block(left);
+					m_blocks.free_block(right);
+					break;
+			}
+			m_blocks.write_block(buf);
+		}
 	}
 
 	memory_size_type count(Key k) {

@@ -68,9 +68,36 @@ bool b_tree_test_2(key_type items) {
 	return true;
 }
 
+bool b_tree_erase_test(key_type items) {
+	tree_type t;
+	for (key_type i = 0; i < items; ++i) {
+		t.insert(i);
+	}
+	for (key_type i = 1; i < items; i += 2) {
+		t.erase(i);
+	}
+	std::vector<key_type> output;
+	output.reserve(items/2);
+	t.in_order_dump(std::back_inserter(output));
+	if (output.size() != items / 2) {
+		tpie::log_error() << "B tree dump output incorrect no. of items" << std::endl;
+		return false;
+	}
+
+	for (key_type i = 0; i < items / 2; ++i) {
+		if (output[i] != i*2) {
+			tpie::log_error() << "B tree dump incorrect @ " << i << std::endl;
+			return false;
+		}
+	}
+
+	return true;
+}
+
 int main(int argc, char ** argv) {
 	return tpie::tests(argc, argv)
 	.test(b_tree_test, "b_tree")
 	.test(b_tree_test_2, "b_tree_2", "n", static_cast<key_type>(1000))
+	.test(b_tree_erase_test, "b_tree_erase", "n", static_cast<key_type>(1000))
 	;
 }
