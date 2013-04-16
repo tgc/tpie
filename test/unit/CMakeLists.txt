@@ -45,6 +45,11 @@ add_unittest(stream_exception basic)
 add_unittest(pipelining vector filestream fspull fsaltpush merge reverse sort sorttrivial operators uniq memory fork merger_memory fetch_forward virtual_ref virtual virtual_cref_item_type prepare end_time pull_iterator push_iterator parallel parallel_ordered parallel_multiple parallel_own_buffer parallel_push_in_end node_map join)
 add_unittest(pipelining_serialization basic reverse sort)
 
+if(TPIE_USE_SNAPPY)
+	add_unittest(snappy basic)
+	target_link_libraries(ut-snappy ${Snappy_LIBRARY})
+endif(TPIE_USE_SNAPPY)
+
 add_fulltest(ami_stream stress)
 add_fulltest(disjoint_set large large_cycle very_large medium ovelflow)
 add_fulltest(external_priority_queue medium large large_cycle memory)
