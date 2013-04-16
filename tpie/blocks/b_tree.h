@@ -28,6 +28,28 @@ namespace tpie {
 
 namespace blocks {
 
+template <typename T>
+class b_tree_traits {
+public:
+	typedef T Key;
+
+	typedef T Value;
+
+	/* [Notation: If `R` is a Compare object, then `a R b` means `R(a, b)`.]
+	 *
+	 * Antisymmetry: If `<` is a Compare object, and `a` and `b` are Keys,
+	 * then `a` and `b` are considered equal if not a < b and not b < a.
+	 * We write (a == b) to mean (not a < b and not b < a).
+	 *
+	 * Transitivity: If `<` is a Compare object, and `a`, `b`, `c` are Keys,
+	 * then if a < b and b < c, then a < c.
+	 */
+	typedef std::less<Key> Compare;
+
+	/* It is assumed that v1 == v2 iff key_of_value(v1) == key_of_value(v2). */
+	static Key key_of_value(const Value & v) { return static_cast<Key>(v); }
+};
+
 struct b_tree_block_header {
 	uint64_t keys;
 };
@@ -40,8 +62,9 @@ public:
 	static Key      get_val(ptr_type p) { return *p; }
 };
 
-template <typename Key>
+template <typename Traits>
 class b_tree_block {
+	typedef typename Traits::Key Key;
 public:
 	static memory_size_type calculate_fanout(memory_size_type blockSize) {
 		blockSize -= sizeof(b_tree_block_header);
@@ -129,8 +152,8 @@ public:
 		Key midKey;
 
 		{
-			b_tree_block<Key> left(leftBuf, m_fanout);
-			b_tree_block<Key> right(rightBuf, m_fanout);
+			b_tree_block<Traits> left(leftBuf, m_fanout);
+			b_tree_block<Traits> right(rightBuf, m_fanout);
 
 			if (left.keys() != 0) throw exception("split_insert to non-empty left");
 			if (right.keys() != 0) throw exception("split_insert to non-empty right");
@@ -194,12 +217,10 @@ private:
 	std::vector<std::pair<block_handle, memory_size_type> > m_components;
 };
 
-template <typename Key>
+template <typename Traits>
 class b_tree {
-	/* Antisymmetry: If `comp` is a Compare object, and `a` and `b` are Keys,
-	 * then `a` and `b` are considered equal if !comp(a, b) and !comp(b, a).
-	 */
-	typedef std::less<Key> Compare;
+	typedef typename Traits::Key Key;
+	typedef typename Traits::Compare Compare;
 
 public:
 	b_tree()
@@ -212,11 +233,11 @@ public:
 		close();
 	}
 
-	void insert(Key v) {
+	void insert(Key k) {
 		block_buffer buf;
 		read_root(buf);
-		b_tree_path p = key_path(buf, v);
-		b_tree_block<Key> block(buf, fanout());
+		b_tree_path p = key_path(buf, k);
+		b_tree_block<Traits> block(buf, fanout());
 
 		memory_size_type i = p.current_index();
 
@@ -228,7 +249,7 @@ public:
 			block_buffer right;
 			m_blocks.get_free_block(left);
 			m_blocks.get_free_block(right);
-			v = block.split_insert(i, v, leftChild, rightChild, left, right);
+			k = block.split_insert(i, k, leftChild, rightChild, left, right);
 			m_blocks.write_block(left);
 			m_blocks.write_block(right);
 			leftChild = left.get_handle();
@@ -249,19 +270,19 @@ public:
 			i = 0;
 		}
 
-		block.insert(i, v, leftChild, rightChild);
+		block.insert(i, k, leftChild, rightChild);
 		m_blocks.write_block(buf);
 	}
 
-	memory_size_type count(Key v) {
+	memory_size_type count(Key k) {
 		block_buffer buf;
 		read_root(buf);
-		b_tree_path p = key_path(buf, v);
-		b_tree_block<Key> block(buf, fanout());
+		b_tree_path p = key_path(buf, k);
+		b_tree_block<Traits> block(buf, fanout());
 		memory_size_type i = p.current_index();
 		if (i == block.keys()) return 0;
-		if (m_comp(v, block.key(i))) return 0;
-		if (m_comp(block.key(i), v)) return 0;
+		if (m_comp(k, block.key(i))) return 0;
+		if (m_comp(block.key(i), k)) return 0;
 		return 1;
 	}
 
@@ -280,7 +301,7 @@ private:
 	}
 
 	memory_size_type fanout() {
-		return b_tree_block<Key>::calculate_fanout(block_size());
+		return b_tree_block<Traits>::calculate_fanout(block_size());
 	}
 
 	void read_root(block_buffer & b) {
@@ -296,19 +317,19 @@ private:
 	/// Reuses the given block buffer when changing node and returns the index
 	/// in the block where the key is found or should be inserted.
 	///////////////////////////////////////////////////////////////////////////
-	b_tree_path key_path(block_buffer & buf, Key v) {
+	b_tree_path key_path(block_buffer & buf, Key k) {
 		b_tree_path res;
 
 		while (true) {
-			b_tree_block<Key> b(buf, fanout());
+			b_tree_block<Traits> b(buf, fanout());
 
 			memory_size_type i;
 			for (i = 0; i != b.keys(); ++i)
-				if (!m_comp(b.key(i), v)) break;
+				if (!m_comp(b.key(i), k)) break;
 
 			res.follow(buf.get_handle(), i);
 
-			if (i != b.keys() && !m_comp(v, b.key(i)))
+			if (i != b.keys() && !m_comp(k, b.key(i)))
 				break; // found by anti-symmetry
 			else if (b.child(i) == block_handle(0))
 				break; // cannot seek any further
@@ -335,7 +356,7 @@ private:
 		if (id == block_handle(0)) return;
 		block_buffer buf;
 		m_blocks.read_block(id, buf);
-		b_tree_block<Key> block(buf, fanout());
+		b_tree_block<Traits> block(buf, fanout());
 		if (block.underfull() && id != m_root) {
 			log_error() << "in_order_dump: Underfull non-root block " << id << std::endl;
 		}

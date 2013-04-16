@@ -21,10 +21,14 @@
 #include <tpie/blocks/b_tree.h>
 #include <tpie/prime.h>
 
+typedef size_t key_type;
+typedef tpie::blocks::b_tree_traits<key_type> traits_type;
+typedef tpie::blocks::b_tree<traits_type> tree_type;
+
 bool b_tree_test() {
 	bool result = true;
-	tpie::blocks::b_tree<int> t;
-	for (int i = 0; i < 100; ++i) {
+	tree_type t;
+	for (key_type i = 0; i < 100; ++i) {
 		t.insert((3*i) % 100);
 		if (!t.count((i/2*3) % 100)) {
 			tpie::log_error() << "Missing element " << (i/2*3)%100 << " from B tree" << std::endl;
@@ -34,11 +38,11 @@ bool b_tree_test() {
 	return result;
 }
 
-bool b_tree_test_2(size_t items) {
-	size_t p = tpie::next_prime(items+1);
+bool b_tree_test_2(key_type items) {
+	key_type p = static_cast<key_type>(tpie::next_prime(static_cast<size_t>(items+1)));
 	tpie::log_debug() << "Generating items " << p << "*i%" << items << " for i in [0," << items << ")" << std::endl;
-	tpie::blocks::b_tree<size_t> t;
-	for (size_t i = 0; i < items; ++i) {
+	tree_type t;
+	for (key_type i = 0; i < items; ++i) {
 		try {
 			t.insert(p*i%items);
 		} catch (...) {
@@ -46,7 +50,7 @@ bool b_tree_test_2(size_t items) {
 			throw;
 		}
 	}
-	std::vector<size_t> output;
+	std::vector<key_type> output;
 	output.reserve(items);
 	t.in_order_dump(std::back_inserter(output));
 
@@ -55,7 +59,7 @@ bool b_tree_test_2(size_t items) {
 		return false;
 	}
 
-	for (size_t i = 0; i < items; ++i) {
+	for (key_type i = 0; i < items; ++i) {
 		if (output[i] != i) {
 			tpie::log_error() << "B tree dump incorrect @ " << i << std::endl;
 			return false;
@@ -67,6 +71,6 @@ bool b_tree_test_2(size_t items) {
 int main(int argc, char ** argv) {
 	return tpie::tests(argc, argv)
 	.test(b_tree_test, "b_tree")
-	.test(b_tree_test_2, "b_tree_2", "n", static_cast<size_t>(1000))
+	.test(b_tree_test_2, "b_tree_2", "n", static_cast<key_type>(1000))
 	;
 }
