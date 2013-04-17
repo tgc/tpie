@@ -72,6 +72,11 @@ enum fuse_result {
 };
 
 template <typename Traits>
+class b_tree_leaf {
+public:
+};
+
+template <typename Traits>
 class b_tree_block {
 	typedef typename Traits::Key Key;
 public:
@@ -299,6 +304,7 @@ class b_tree {
 public:
 	b_tree()
 		: m_root(0)
+		, m_treeHeight(0)
 	{
 		open();
 	}
@@ -307,16 +313,26 @@ public:
 		close();
 	}
 
-	void insert(Key k) {
+	void insert(Value v) {
 		block_buffer buf;
-		read_root(buf);
+		Key k = Traits::key_of_value(v);
 		b_tree_path p = key_path(buf, k);
-		b_tree_block<Traits> block(buf, fanout());
+		b_tree_leaf<Traits> leaf(buf, fanout());
+		if (!leaf.full()) {
+			leaf.insert(v);
+			return;
+		}
+		block_buffer & left = buf;
+		block_buffer right;
 
-		memory_size_type i = p.current_index();
+		memory_size_type i;
 
 		block_handle leftChild(0);
 		block_handle rightChild(0);
+
+		leaf.split_insert(v, right);
+
+		p.parent();
 
 		while (block.full()) {
 			block_buffer left;
@@ -350,7 +366,6 @@ public:
 
 	void erase(Key k) {
 		block_buffer buf;
-		read_root(buf);
 		b_tree_path p = key_path(buf, k);
 		b_tree_block<Traits> block(buf, fanout());
 
@@ -404,7 +419,6 @@ public:
 
 	memory_size_type count(Key k) {
 		block_buffer buf;
-		read_root(buf);
 		b_tree_path p = key_path(buf, k);
 		b_tree_block<Traits> block(buf, fanout());
 		memory_size_type i = p.current_index();
@@ -435,6 +449,7 @@ private:
 	void read_root(block_buffer & b) {
 		if (m_root == block_handle(0)) {
 			m_root = m_blocks.get_free_block();
+			m_treeHeight = 0;
 		}
 		m_blocks.read_block(m_root, b);
 	}
@@ -448,7 +463,9 @@ private:
 	b_tree_path key_path(block_buffer & buf, Key k) {
 		b_tree_path res;
 
-		while (true) {
+		read_root(buf);
+
+		for (memory_size_type i = 0; i < m_treeHeight; ++i) {
 			b_tree_block<Traits> b(buf, fanout());
 
 			memory_size_type i;
@@ -457,10 +474,8 @@ private:
 
 			res.follow(buf.get_handle(), i);
 
-			if (i != b.keys() && !m_comp(k, b.key(i)))
-				break; // found by anti-symmetry
-			else if (b.child(i) == block_handle(0))
-				break; // cannot seek any further
+			if (b.child(i) == block_handle(0))
+				throw exception("Child pointer is 0 in non-leaf");
 			else
 				m_blocks.read_block(b.child(i), buf);
 		}
@@ -527,6 +542,7 @@ private:
 	block_collection m_blocks;
 	block_handle m_root;
 	Compare m_comp;
+	memory_size_type m_treeHeight;
 };
 
 } // namespace blocks
