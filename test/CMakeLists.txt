@@ -49,3 +49,7 @@ target_link_libraries(test_job_overhead tpie)
 add_executable(queue queue.cpp)
 set_target_properties(queue PROPERTIES FOLDER tpie/test)
 target_link_libraries(queue tpie)
+
+add_executable(b_tree b_tree.cpp)
+set_target_properties(b_tree PROPERTIES FOLDER tpie/test)
+target_link_libraries(b_tree tpie)

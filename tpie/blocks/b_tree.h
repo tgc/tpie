@@ -488,6 +488,33 @@ private:
 		in_order_dump_visit(it, block.child(block.keys()));
 	}
 
+public:
+	template <typename It>
+	void bfs_order_block_dump(It it) {
+		if (m_root == block_handle(0)) {
+			log_debug() << "in_order_dump: Empty tree" << std::endl;
+			return;
+		}
+		block_buffer buf;
+		std::deque<block_handle> to_visit;
+		to_visit.push_back(m_root);
+		while (!to_visit.empty()) {
+			const block_handle id = to_visit.front();
+			to_visit.pop_front();
+			m_blocks.read_block(id, buf);
+			const b_tree_block<Traits> block(buf, fanout());
+			if (block.underfull() && id != m_root) {
+				log_error() << "in_order_dump: Underfull non-root block " << id << std::endl;
+			}
+			for (memory_size_type i = 0; i <= block.keys(); ++i) {
+				if (block.child(i) == block_handle(0)) continue;
+				to_visit.push_back(block.child(i));
+			}
+			it(id, block);
+		}
+	}
+
+private:
 	tpie::temp_file m_tempFile;
 	block_collection m_blocks;
 	block_handle m_root;
