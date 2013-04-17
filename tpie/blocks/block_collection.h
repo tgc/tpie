@@ -22,6 +22,7 @@
 
 #include <tpie/array.h>
 #include <tpie/file_accessor/file_accessor.h>
+#include <tpie/tpie_log.h>
 
 namespace tpie {
 

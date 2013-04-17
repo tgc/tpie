@@ -22,6 +22,7 @@
 
 #include <boost/filesystem.hpp>
 
+#include <tpie/tempname.h>
 #include <tpie/blocks/block_collection.h>
 
 namespace tpie {
@@ -224,6 +225,7 @@ public:
 				children[output] = right.child(i);
 				++output;
 			}
+			children[output] = right.child(right.keys());
 		}
 
 		if (keys.size() <= m_fanout) {
@@ -367,17 +369,16 @@ public:
 			memory_size_type i = p.current_index();
 			p.parent();
 			if (p.empty()) {
-				log_debug() << "Erase update root from " << m_root << " to " << buf.get_handle() << std::endl;
-				m_root = buf.get_handle();
-				break;
+				throw exception("Empty path?");
 			}
+			log_debug() << "Read block " << p.current_block() << std::endl;
 			m_blocks.read_block(p.current_block(), buf);
-			if (block.keys() < 2) throw exception("About to fuse with less than two children");
 			memory_size_type rightIndex = (i == 0) ? 1 : i;
 			block_buffer left;
 			block_buffer right;
 			m_blocks.read_block(block.child(rightIndex-1), left);
 			m_blocks.read_block(block.child(rightIndex), right);
+			bool updatedRoot = false;
 			switch (block.fuse(rightIndex, left, right)) {
 				case fuse_share:
 					log_debug() << "Erase fuse_share of " << left.get_handle() << " and " << right.get_handle() << std::endl;
@@ -388,9 +389,16 @@ public:
 					log_debug() << "Erase fuse_merge of " << left.get_handle() << " and " << right.get_handle() << std::endl;
 					m_blocks.write_block(left);
 					m_blocks.free_block(right);
+					if (p.current_block() == m_root) {
+						m_root = left.get_handle();
+						log_debug() << "New root " << m_root << std::endl;
+						updatedRoot = true;
+					}
 					break;
 			}
 			m_blocks.write_block(buf);
+			if (updatedRoot)
+				break;
 		}
 	}
 
