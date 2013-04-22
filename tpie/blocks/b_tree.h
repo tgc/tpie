@@ -25,6 +25,10 @@
 #include <tpie/tempname.h>
 #include <tpie/blocks/block_collection.h>
 
+/**
+ * We refer to Lars Arge, External Memory Geometric Data Structures throughout.
+ */
+
 namespace tpie {
 
 namespace blocks {
@@ -51,8 +55,13 @@ public:
 	static Key key_of_value(const Value & v) { return static_cast<Key>(v); }
 };
 
-struct b_tree_block_header {
-	uint64_t keys;
+struct b_tree_header {
+	uint64_t degree;
+};
+
+struct b_tree_parameters {
+	uint64_t a;
+	uint64_t b;
 };
 
 template <typename Key>
@@ -72,8 +81,168 @@ enum fuse_result {
 };
 
 template <typename Traits>
-class b_tree_leaf {
+class key_less_than {
+	typedef typename Traits::Key Key;
+	typedef typename Traits::Value Value;
+	typedef typename Traits::Compare Compare;
+
+	Compare comp;
+	Key key;
+
 public:
+	key_less_than(const Compare & comp, const Value & v)
+		: comp(comp)
+		, key(Traits::key_of_value(v))
+	{
+	}
+
+	bool operator()(const Value & v) const {
+		return comp(Traits::key_of_value(v), key);
+	}
+};
+
+template <typename Traits>
+class key_less {
+	typedef typename Traits::Value Value;
+	typedef typename Traits::Compare Compare;
+
+	Compare comp;
+
+public:
+	key_less(const Compare & comp)
+		: comp(comp)
+	{
+	}
+
+	bool operator()(const Value & v1, const Value & v2) const {
+		return comp(Traits::key_of_value(v1), Traits::key_of_value(v2));
+	}
+};
+
+template <typename Traits>
+class b_tree_leaf {
+	typedef typename Traits::Key Key;
+	typedef typename Traits::Value Value;
+	typedef typename Traits::Compare Compare;
+
+public:
+	b_tree_leaf(block_buffer & buffer, const b_tree_parameters & params)
+		: m_params(params)
+	{
+		m_header = reinterpret_cast<b_tree_header *>(buffer.get());
+		m_values = reinterpret_cast<Value *>(buffer.get() + sizeof(b_tree_header));
+	}
+
+	memory_size_type degree() const {
+		return static_cast<memory_size_type>(m_header->degree);
+	}
+
+	const Value & operator[](memory_size_type i) const {
+		return m_values[i];
+	}
+
+	memory_size_type count(const Key & key, Compare comp) const {
+		for (memory_size_type i = 0; i != degree(); ++i) {
+			Key k = Traits::key_of_value(m_values[i]);
+			if (!comp(k, key) && !comp(key, k)) return 1;
+		}
+		return 0;
+	}
+
+	// Definition 1, first bullet:
+	// All leaves of T are on the same level and contain between a and b elements.
+	bool full() const {
+		return m_header->degree == m_params.b;
+	}
+
+	bool underfull() const {
+		return m_header->degree < m_params.a;
+	}
+
+	void insert(Value v) {
+		if (full()) throw exception("Insert in full leaf");
+		m_values[m_header->degree] = v;
+		++m_header->degree;
+	}
+
+	// Returns the minimum key in the right buffer.
+	Key split_insert(Value v, block_buffer & rightBuf, const Compare & comp) {
+		if (m_header->degree != m_params.b) throw exception("Split insert in non-full leaf");
+
+		b_tree_leaf<Traits> rightLeaf(rightBuf, m_params);
+
+		Value * endPoint = m_values + m_params.b;
+		Value * insertionPoint = std::partition(m_values, endPoint, key_less_than<Traits>(comp, v));
+		Value * splitPoint = m_values + m_params.b/2;
+
+		// All values in [m_values, insertionPoint) are less than v,
+		// which is less than all values in [insertionPoint, endPoint).
+
+		if (insertionPoint < splitPoint) {
+			// We must insert v into left leaf.
+			std::nth_element(insertionPoint, splitPoint, endPoint, key_less<Traits>(comp));
+			// All values in [m_values, insertionPoint) are less than
+			// all values in [insertionPoint, splitPoint) which are less than
+			// all values in [splitPoint, endPoint).
+			// Let [m_values, splitPoint) + v be the new left leaf,
+			// and [splitPoint, endPoint) be the new right leaf.
+			std::copy(splitPoint, endPoint, rightLeaf.m_values);
+			m_header->degree = (splitPoint - m_values) + 1;
+			rightLeaf.m_header->degree = endPoint - splitPoint;
+			*splitPoint = v;
+		} else if (insertionPoint > splitPoint) {
+			// We must insert v into right leaf.
+			std::nth_element(m_values, splitPoint, insertionPoint, key_less<Traits>(comp));
+			// All values in [m_values, splitPoint) are less than
+			// all values in [splitPoint, insertionPoint) which are less than
+			// all values in [insertionPoint, endPoint).
+			// Let [m_values, splitPoint) be the new left leaf,
+			// and [splitPoint, insertionPoint) + v + [insertionPoint, endPoint)
+			// be our new right leaf.
+			std::swap(*splitPoint, v);
+			Value * d = std::copy(splitPoint, insertionPoint, rightLeaf.m_values);
+			*d++ = v;
+			std::copy(insertionPoint, endPoint, d);
+
+			m_header->degree = splitPoint - m_values;
+			rightLeaf.m_header->degree = (endPoint - splitPoint) + 1;
+		} else { // insertionPoint == splitPoint
+			// Let [m_values, splitPoint) + v be our new left leaf,
+			// and [splitPoint, endPoint) be our new right leaf.
+			std::copy(splitPoint, endPoint, rightLeaf.m_values);
+			m_header->degree = (splitPoint - m_values) + 1;
+			rightLeaf.m_header->degree = endPoint - splitPoint;
+			*splitPoint = v;
+		}
+
+		// At this point, verify that all values in the left leaf
+		// are less than all values in the right leaf.
+		Value * leftMax = std::max_element(m_values, m_values + degree(), key_less<Traits>(comp));
+		Value * rightMin = std::min_element(rightLeaf.m_values, rightLeaf.m_values + rightLeaf.degree(), key_less<Traits>(comp));
+		Key leftMaxKey = Traits::key_of_value(*leftMax);
+		Key rightMinKey = Traits::key_of_value(*rightMin);
+		if (comp(rightMinKey, leftMaxKey)) {
+			throw exception("split_insert failed to maintain order invariant");
+		}
+		return rightMinKey;
+	}
+
+	void erase(const Key & key, Compare comp) {
+		memory_size_type i;
+		for (i = 0; i != m_header->degree; ++i) {
+			Key k = Traits::key_of_value(m_values[i]);
+			if (!comp(k, key) && !comp(key, k))
+				break;
+		}
+		if (i == m_header->degree) throw exception("Key not found");
+		std::copy(m_values + (i+1), m_values + m_header->degree, m_values + i);
+		--m_header->degree;
+	}
+
+private:
+	b_tree_header * m_header;
+	Value * m_values;
+	b_tree_parameters m_params;
 };
 
 template <typename Traits>
@@ -81,48 +250,66 @@ class b_tree_block {
 	typedef typename Traits::Key Key;
 public:
 	static memory_size_type calculate_fanout(memory_size_type blockSize) {
-		blockSize -= sizeof(b_tree_block_header);
+		blockSize -= sizeof(b_tree_header);
 		blockSize -= sizeof(block_handle); // one more child pointer than keys
 		memory_size_type perKey = sizeof(block_handle) + sizeof(Key);
 		return blockSize / perKey; // floored division
 	}
 
-	b_tree_block(block_buffer & buffer, memory_size_type fanout) {
-		char * children = buffer.get() + sizeof(b_tree_block_header);
-		char * keys = children + (1+fanout) * sizeof(block_handle);
+	b_tree_block(block_buffer & buffer, const b_tree_parameters & params)
+		: m_params(params)
+	{
+		char * children = buffer.get() + sizeof(b_tree_header);
+		char * keys = children + params.b * sizeof(block_handle);
 
-		m_header = reinterpret_cast<b_tree_block_header *>(buffer.get());
+		m_header = reinterpret_cast<b_tree_header *>(buffer.get());
 		m_children = reinterpret_cast<block_handle *>(children);
 		m_keys = reinterpret_cast<Key *>(keys);
+	}
 
-		m_fanout = fanout;
+	void new_root(const Key & k, const block_handle & left, const block_handle & right) {
+		m_header->degree = 2;
+		m_keys[0] = k;
+		m_children[0] = left;
+		m_children[1] = right;
+	}
+
+	memory_size_type degree() const {
+		return static_cast<memory_size_type>(m_header->degree);
 	}
 
 	memory_size_type keys() const {
-		return static_cast<memory_size_type>(m_header->keys);
+		return degree() - 1;
 	}
 
+	// Definition 1, second bullet:
+	// Except for the root, all nodes have degree between a and b (contain
+	// between a - 1 and b - 1 elements)
 	bool full() const {
-		return keys() == m_fanout;
+		return degree() == m_params.b;
 	}
 
 	bool underfull() const {
-		return keys() < m_fanout/2;
+		return degree() < m_params.a;
 	}
 
 	Key key(memory_size_type idx) const {
+		if (idx > keys()) throw exception("Block key: Index out of bounds");
 		return m_keys[idx];
 	}
 
 	block_handle child(memory_size_type idx) const {
+		if (idx > degree()) throw exception("Block child: Index out of bounds");
 		return m_children[idx];
 	}
 
-	void erase(memory_size_type idx) {
+	void erase(memory_size_type idx, block_handle newChild) {
+		if (idx > keys()) throw exception("Block erase: Index out of bounds");
 		for (memory_size_type i = idx+1; i != keys(); ++i) {
 			m_keys[i-1] = m_keys[i];
 		}
-		--m_header->keys;
+		m_children[idx] = newChild;
+		--m_header->degree;
 	}
 
 	void insert(memory_size_type i, Key k, block_handle leftChild, block_handle rightChild) {
@@ -138,7 +325,7 @@ public:
 		}
 		m_children[i+1] = c;
 		m_keys[i] = k;
-		++m_header->keys;
+		++m_header->degree;
 	}
 
 	Key split_insert(memory_size_type insertIndex,
@@ -148,22 +335,22 @@ public:
 					 block_buffer & leftBuf,
 					 block_buffer & rightBuf)
 	{
-		if (keys() != m_fanout) throw exception("split_insert on non-full block");
+		if (!full()) throw exception("split_insert on non-full block");
 
 		typedef key_ops<Key> O;
 		typedef typename O::ptr_type KeyPtr;
 
-		std::vector<block_handle> children(m_fanout+2);
-		std::vector<KeyPtr> keys(m_fanout+1);
+		std::vector<block_handle> children(degree()+1);
+		std::vector<KeyPtr> keys(this->keys() + 1);
 
 		{
-			for (memory_size_type i = 0; i < m_fanout; ++i) {
+			for (memory_size_type i = 0; i < this->keys(); ++i) {
 				memory_size_type dest = i;
 				if (insertIndex <= i) ++dest;
 				children[dest] = m_children[i];
 				keys[dest] = O::get_ptr(m_keys[i]);
 			}
-			children[m_fanout+1] = m_children[m_fanout];
+			children[degree()] = m_children[degree()-1];
 
 			keys[insertIndex] = O::get_ptr(insertKey);
 			children[insertIndex] = leftChild;
@@ -173,35 +360,32 @@ public:
 		Key midKey;
 
 		{
-			b_tree_block<Traits> left(leftBuf, m_fanout);
-			b_tree_block<Traits> right(rightBuf, m_fanout);
-
-			if (left.keys() != 0) throw exception("split_insert to non-empty left");
-			if (right.keys() != 0) throw exception("split_insert to non-empty right");
+			b_tree_block<Traits> left(leftBuf, m_params);
+			b_tree_block<Traits> right(rightBuf, m_params);
 
 			memory_size_type in = 0;
 			memory_size_type out;
-			for (out = 0; in*2 < m_fanout; ++out) {
+			for (out = 0; in*2 < keys.size(); ++out) {
 				left.m_children[out] = children[in];
 				left.m_keys[out] = O::get_val(keys[in]);
 				++in;
 			}
 			left.m_children[out] = children[in];
-			left.m_header->keys = static_cast<uint64_t>(out);
+			left.m_header->degree = static_cast<uint64_t>(out + 1);
 
 			midKey = O::get_val(keys[in]);
 			++in;
 
-			for (out = 0; in < m_fanout+1; ++out) {
+			for (out = 0; in < keys.size(); ++out) {
 				right.m_children[out] = children[in];
 				right.m_keys[out] = O::get_val(keys[in]);
 				++in;
 			}
 			right.m_children[out] = children[in];
-			right.m_header->keys = static_cast<uint64_t>(out);
+			right.m_header->degree = static_cast<uint64_t>(out + 1);
 		}
 
-		m_header->keys = 0;
+		m_header->degree = 0;
 		return midKey;
 	}
 
@@ -209,8 +393,8 @@ public:
 					 block_buffer & leftBuf,
 					 block_buffer & rightBuf)
 	{
-		b_tree_block<Traits> left(leftBuf, m_fanout);
-		b_tree_block<Traits> right(rightBuf, m_fanout);
+		b_tree_block<Traits> left(leftBuf, m_params);
+		b_tree_block<Traits> right(rightBuf, m_params);
 
 		std::vector<Key> keys(left.keys() + 1 + right.keys());
 		std::vector<block_handle> children(left.keys() + right.keys() + 2);
@@ -233,49 +417,62 @@ public:
 			children[output] = right.child(right.keys());
 		}
 
-		if (keys.size() <= m_fanout) {
+		if (children.size() <= m_params.b) {
 			std::copy(keys.begin(), keys.end(), &left.m_keys[0]);
 			std::copy(children.begin(), children.end(), &left.m_children[0]);
-			left.m_header->keys = static_cast<uint64_t>(keys.size());
+			left.m_header->degree = static_cast<uint64_t>(children.size());
 
+			// TODO verify
 			for (memory_size_type i = rightIndex; i < this->keys(); ++i) {
 				m_keys[i-1] = m_keys[i];
 				m_children[i] = m_children[i+1];
 			}
-			--m_header->keys;
+			--m_header->degree;
 
 			return fuse_merge;
 
 		} else {
 
+			// TODO
+
 			memory_size_type half = keys.size()/2;
 			std::copy(keys.begin(), keys.begin() + half, &left.m_keys[0]);
 			std::copy(children.begin(), children.begin() + (half + 1), &left.m_children[0]);
-			left.m_header->keys = static_cast<uint64_t>(half);
+			left.m_header->degree = static_cast<uint64_t>(half - 1);
 
 			m_keys[rightIndex-1] = keys[half];
 
 			std::copy(keys.begin() + 1, keys.end(), &right.m_keys[0]);
 			std::copy(children.begin() + 1, children.end(), &right.m_children[0]);
-			left.m_header->keys = static_cast<uint64_t>(keys.size() - half - 1);
+			right.m_header->degree = static_cast<uint64_t>(keys.size() - half);
 
 			return fuse_share;
 		}
 	}
 
 private:
-	b_tree_block_header * m_header;
+	b_tree_header * m_header;
 	block_handle * m_children;
 	Key * m_keys;
-	memory_size_type m_fanout;
+	b_tree_parameters m_params;
 };
 
+// A path in the B tree of height h (having the root at level 0 and leaves at level h)
+// is a sequence ((b_0, i_0), (b_1, i_1), ..., (b_(h-1), i_(h-1)))
+// where b_0 is the block handle of the root block,
+// and b_(j+1) is the i_j'th block referred to by block b_j.
+// A b_tree_path supports the stack operation PUSH through the `follow` method,
+// and the stack operation POP through the `parent` method.
 class b_tree_path {
 public:
+	// Pre-condition:
+	// If empty(), b refers to the root of the B tree.
+	// If !empty(), b is the index'th child of block `current_block()`.
 	void follow(block_handle b, memory_size_type index) {
 		m_components.push_back(std::make_pair(b, index));
 	}
 
+	// Pre-condition: !empty()
 	void parent() {
 		m_components.pop_back();
 	}
@@ -299,6 +496,7 @@ private:
 template <typename Traits>
 class b_tree {
 	typedef typename Traits::Key Key;
+	typedef typename Traits::Value Value;
 	typedef typename Traits::Compare Compare;
 
 public:
@@ -307,6 +505,10 @@ public:
 		, m_treeHeight(0)
 	{
 		open();
+		m_params.b = b_tree_block<Traits>::calculate_fanout(block_size());
+		m_params.a = (m_params.b + 3)/4;
+		if (m_params.a < 2) throw exception("Block size too small; a >= 2 violated");
+		if (m_params.b < m_params.a*2-1) throw exception("Block size too small; b >= 2a-1 violated");
 	}
 
 	~b_tree() {
@@ -317,58 +519,91 @@ public:
 		block_buffer buf;
 		Key k = Traits::key_of_value(v);
 		b_tree_path p = key_path(buf, k);
-		b_tree_leaf<Traits> leaf(buf, fanout());
-		if (!leaf.full()) {
-			leaf.insert(v);
+		block_handle leftChild;
+		block_handle rightChild;
+
+		{
+			b_tree_leaf<Traits> leaf(buf, m_params);
+			if (!leaf.full()) {
+				leaf.insert(v);
+				m_blocks.write_block(buf);
+				return;
+			} else {
+				block_buffer & left = buf;
+				block_buffer right;
+
+				m_blocks.get_free_block(right);
+
+				k = leaf.split_insert(v, right, m_comp);
+				m_blocks.write_block(left);
+				m_blocks.write_block(right);
+				leftChild = left.get_handle();
+				rightChild = right.get_handle();
+			}
+		}
+
+		if (p.empty()) {
+			// The root was previously a single leaf
+			// which has now been split into two.
+			m_blocks.get_free_block(buf);
+			b_tree_block<Traits> block(buf, m_params);
+			block.new_root(k, leftChild, rightChild);
+			m_blocks.write_block(buf);
+			++m_treeHeight;
+			m_root = buf.get_handle();
 			return;
 		}
-		block_buffer & left = buf;
-		block_buffer right;
 
-		memory_size_type i;
+		b_tree_block<Traits> block(buf, m_params);
 
-		block_handle leftChild(0);
-		block_handle rightChild(0);
-
-		leaf.split_insert(v, right);
-
-		p.parent();
-
-		while (block.full()) {
+		while (!p.empty()) {
+			m_blocks.read_block(p.current_block(), buf);
+			if (!block.full()) break;
+			// else, we split the block
 			block_buffer left;
 			block_buffer right;
 			m_blocks.get_free_block(left);
 			m_blocks.get_free_block(right);
-			k = block.split_insert(i, k, leftChild, rightChild, left, right);
+			k = block.split_insert(p.current_index(), k, leftChild, rightChild, left, right);
 			m_blocks.write_block(left);
 			m_blocks.write_block(right);
 			leftChild = left.get_handle();
 			rightChild = right.get_handle();
 
 			p.parent();
-			if (p.empty()) break;
-
 			m_blocks.free_block(buf);
-
-			i = p.current_index();
-			m_blocks.read_block(p.current_block(), buf);
 		}
 
 		if (p.empty()) {
-			if (buf.get_handle() != m_root) throw exception("Didn't end up at the root");
-			if (block.keys() != 0) throw exception("Unexpected nonempty root");
-			i = 0;
+			// We split the root.
+			m_blocks.get_free_block(buf);
+			block.new_root(k, leftChild, rightChild);
+			m_blocks.write_block(buf);
+			++m_treeHeight;
+			m_root = buf.get_handle();
+		} else {
+			m_blocks.read_block(p.current_block(), buf);
+			block.insert(p.current_index(), k, leftChild, rightChild);
+			m_blocks.write_block(buf);
 		}
-
-		block.insert(i, k, leftChild, rightChild);
-		m_blocks.write_block(buf);
 	}
 
 	void erase(Key k) {
 		block_buffer buf;
 		b_tree_path p = key_path(buf, k);
-		b_tree_block<Traits> block(buf, fanout());
+		{
+			b_tree_leaf<Traits> leaf(buf, m_params);
 
+			leaf.erase(k, m_comp);
+
+			if (p.empty() || !leaf.underfull()) {
+				m_blocks.write_block(buf);
+				return;
+			}
+		}
+
+		throw exception("TODO: fuse");
+		/*
 		memory_size_type idx = p.current_index();
 		log_debug() << "erase key " << k << " in block " << p.current_block() << "/" << buf.get_handle() << " idx " << idx << std::endl;
 
@@ -415,17 +650,14 @@ public:
 			if (updatedRoot)
 				break;
 		}
+		*/
 	}
 
 	memory_size_type count(Key k) {
 		block_buffer buf;
 		b_tree_path p = key_path(buf, k);
-		b_tree_block<Traits> block(buf, fanout());
-		memory_size_type i = p.current_index();
-		if (i == block.keys()) return 0;
-		if (m_comp(k, block.key(i))) return 0;
-		if (m_comp(block.key(i), k)) return 0;
-		return 1;
+		b_tree_leaf<Traits> leaf(buf, m_params);
+		return leaf.count(k, m_comp);
 	}
 
 private:
@@ -440,10 +672,6 @@ private:
 
 	memory_size_type block_size() {
 		return block_collection::default_block_size();
-	}
-
-	memory_size_type fanout() {
-		return b_tree_block<Traits>::calculate_fanout(block_size());
 	}
 
 	void read_root(block_buffer & b) {
@@ -466,7 +694,7 @@ private:
 		read_root(buf);
 
 		for (memory_size_type i = 0; i < m_treeHeight; ++i) {
-			b_tree_block<Traits> b(buf, fanout());
+			b_tree_block<Traits> b(buf, m_params);
 
 			memory_size_type i;
 			for (i = 0; i != b.keys(); ++i)
@@ -490,25 +718,37 @@ public:
 			log_debug() << "in_order_dump: Empty tree" << std::endl;
 			return;
 		}
-		in_order_dump_visit(it, m_root);
+		in_order_dump_visit(it, m_root, m_treeHeight);
 	}
 
 private:
 	template <typename It>
-	void in_order_dump_visit(It it, block_handle id) {
+	void in_order_dump_visit(It it, block_handle id, memory_size_type leafDistance) {
 		if (id == block_handle(0)) return;
 		block_buffer buf;
 		m_blocks.read_block(id, buf);
-		b_tree_block<Traits> block(buf, fanout());
-		if (block.underfull() && id != m_root) {
-			log_error() << "in_order_dump: Underfull non-root block " << id << std::endl;
+		if (leafDistance == 0) {
+			b_tree_leaf<Traits> leaf(buf, m_params);
+			std::vector<Value> vals;
+			vals.reserve(leaf.degree());
+			for (memory_size_type i = 0; i < leaf.degree(); ++i) {
+				vals.push_back(leaf[i]);
+			}
+			std::sort(vals.begin(), vals.end(), key_less<Traits>(m_comp));
+			for (memory_size_type i = 0; i < vals.size(); ++i) {
+				*it = vals[i];
+				++it;
+			}
+		} else {
+			b_tree_block<Traits> block(buf, m_params);
+			if (block.underfull() && id != m_root) {
+				log_error() << "in_order_dump: Underfull non-root block " << id << std::endl;
+			}
+			for (memory_size_type i = 0; i < block.keys(); ++i) {
+				in_order_dump_visit(it, block.child(i), leafDistance-1);
+			}
+			in_order_dump_visit(it, block.child(block.keys()), leafDistance-1);
 		}
-		for (memory_size_type i = 0; i < block.keys(); ++i) {
-			in_order_dump_visit(it, block.child(i));
-			*it = block.key(i);
-			++it;
-		}
-		in_order_dump_visit(it, block.child(block.keys()));
 	}
 
 public:
@@ -525,7 +765,7 @@ public:
 			const block_handle id = to_visit.front();
 			to_visit.pop_front();
 			m_blocks.read_block(id, buf);
-			const b_tree_block<Traits> block(buf, fanout());
+			const b_tree_block<Traits> block(buf, m_params);
 			if (block.underfull() && id != m_root) {
 				log_error() << "in_order_dump: Underfull non-root block " << id << std::endl;
 			}
@@ -543,6 +783,7 @@ private:
 	block_handle m_root;
 	Compare m_comp;
 	memory_size_type m_treeHeight;
+	b_tree_parameters m_params;
 };
 
 } // namespace blocks
