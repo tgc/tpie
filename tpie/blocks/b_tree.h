@@ -813,6 +813,42 @@ public:
 		return leaf.count(k, m_comp);
 	}
 
+	///////////////////////////////////////////////////////////////////////////
+	/// \brief  Search B tree for item with given Key.
+	///
+	/// If found, assigns the result to *out.
+	///
+	/// Returns true if found; false otherwise.
+	///////////////////////////////////////////////////////////////////////////
+	bool try_find(Key k, Value * out) {
+		block_buffer buf;
+		b_tree_path p = key_path(buf, k);
+		b_tree_leaf<Traits> leaf(buf, m_params);
+		memory_size_type i = leaf.index_of(k, m_comp);
+		if (i == leaf.degree()) {
+			return false;
+		} else {
+			*out = leaf[i];
+			return true;
+		}
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	/// \brief  Find value associated to given key.
+	///
+	/// Precondition: count(k) == 1.
+	///
+	/// If you are not sure if the tree contains a value for the given key,
+	/// use `try_find` instead.
+	///////////////////////////////////////////////////////////////////////////
+	Value find(Key k) {
+		Value out;
+		if (try_find(k, &out))
+			return out;
+		else
+			throw exception("Value with given key not found");
+	}
+
 private:
 	void open() {
 		m_blocks.open(m_tempFile.path(), true);
