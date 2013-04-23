@@ -247,6 +247,43 @@ public:
 		--m_header->degree;
 	}
 
+	fuse_result fuse_with(b_tree_leaf & right, Key & midKey, const Compare & comp) {
+		array<Value> values(degree() + right.degree());
+		if (degree() + right.degree() <= m_params.leafMax) {
+			std::copy(right.m_values,
+					  right.m_values + right.degree(),
+					  m_values + degree());
+			m_header->degree += static_cast<uint64_t>(right.degree());
+			return fuse_merge;
+		} else {
+			std::copy(m_values,
+					  m_values + degree(),
+					  values.get());
+			std::copy(right.m_values,
+					  right.m_values + right.degree(),
+					  values.get() + degree());
+
+			Value * midPoint = values.get() + values.size() / 2;
+			std::nth_element(values.get(),
+							 midPoint,
+							 values.get() + values.size(),
+							 key_less<Traits>(comp));
+
+			std::copy(values.get(),
+					  midPoint,
+					  m_values);
+			m_header->degree = midPoint - values.get();
+
+			std::copy(midPoint,
+					  values.get() + values.size(),
+					  right.m_values);
+			right.m_header->degree = (values.get() + values.size()) - midPoint;
+
+			midKey = Traits::key_of_value(*midPoint);
+			return fuse_share;
+		}
+	}
+
 private:
 	b_tree_header * m_header;
 	Value * m_values;
@@ -256,6 +293,7 @@ private:
 template <typename Traits>
 class b_tree_block {
 	typedef typename Traits::Key Key;
+	typedef typename Traits::Compare Compare;
 public:
 	static memory_size_type calculate_fanout(memory_size_type blockSize) {
 		blockSize -= sizeof(b_tree_header);
@@ -396,6 +434,32 @@ public:
 
 		m_header->degree = 0;
 		return midKey;
+	}
+
+	fuse_result fuse_leaves(memory_size_type rightIndex,
+							block_buffer & leftBuf,
+							block_buffer & rightBuf,
+							const Compare & comp)
+	{
+		b_tree_leaf<Traits> left(leftBuf, m_params);
+		b_tree_leaf<Traits> right(rightBuf, m_params);
+		Key k;
+		switch (left.fuse_with(right, k, comp)) {
+			case fuse_merge:
+				std::copy(m_keys + rightIndex,
+						  m_keys + keys(),
+						  m_keys + (rightIndex - 1));
+				std::copy(m_children + (rightIndex + 1),
+						  m_children + degree(),
+						  m_children + rightIndex);
+				--m_header->degree;
+				return fuse_merge;
+			case fuse_share:
+				m_keys[rightIndex-1] = k;
+				return fuse_share;
+			default:
+				throw exception("Unreachable statement");
+		}
 	}
 
 	fuse_result fuse(memory_size_type rightIndex,
@@ -573,6 +637,7 @@ public:
 			m_blocks.write_block(buf);
 			++m_treeHeight;
 			m_root = buf.get_handle();
+			log_debug() << "Increase tree height to " << m_treeHeight << "; root is now " << m_root << std::endl;
 			return;
 		}
 
@@ -618,61 +683,67 @@ public:
 
 			leaf.erase(k, m_comp);
 
+			m_blocks.write_block(buf);
 			if (p.empty() || !leaf.underfull()) {
-				m_blocks.write_block(buf);
 				return;
 			}
 		}
 
-		throw exception("TODO: fuse");
-		/*
-		memory_size_type idx = p.current_index();
-		log_debug() << "erase key " << k << " in block " << p.current_block() << "/" << buf.get_handle() << " idx " << idx << std::endl;
+		memory_size_type rightIndex = p.current_index() == 0 ? 1 : p.current_index();
+		block_buffer left;
+		block_buffer right;
 
-		if (idx == block.keys() || m_comp(block.key(idx), k)) {
-			log_debug() << "erase non-existing key " << k << " " << idx << "; noop." << std::endl;
-			return;
-		}
-
-		block.erase(idx);
-		m_blocks.write_block(buf);
-
-		while (block.underfull()) {
-			memory_size_type i = p.current_index();
-			p.parent();
-			if (p.empty()) {
-				throw exception("Empty path?");
-			}
-			log_debug() << "Read block " << p.current_block() << std::endl;
-			m_blocks.read_block(p.current_block(), buf);
-			memory_size_type rightIndex = (i == 0) ? 1 : i;
-			block_buffer left;
-			block_buffer right;
-			m_blocks.read_block(block.child(rightIndex-1), left);
-			m_blocks.read_block(block.child(rightIndex), right);
-			bool updatedRoot = false;
-			switch (block.fuse(rightIndex, left, right)) {
-				case fuse_share:
-					log_debug() << "Erase fuse_share of " << left.get_handle() << " and " << right.get_handle() << std::endl;
-					m_blocks.write_block(left);
-					m_blocks.write_block(right);
-					break;
-				case fuse_merge:
-					log_debug() << "Erase fuse_merge of " << left.get_handle() << " and " << right.get_handle() << std::endl;
-					m_blocks.write_block(left);
-					m_blocks.free_block(right);
-					if (p.current_block() == m_root) {
-						m_root = left.get_handle();
-						log_debug() << "New root " << m_root << std::endl;
-						updatedRoot = true;
-					}
-					break;
-			}
-			m_blocks.write_block(buf);
-			if (updatedRoot)
+		m_blocks.read_block(p.current_block(), buf);
+		b_tree_block<Traits> block(buf, m_params);
+		m_blocks.read_block(block.child(rightIndex-1), left);
+		m_blocks.read_block(block.child(rightIndex), right);
+		switch (block.fuse_leaves(rightIndex, left, right, m_comp)) {
+			case fuse_share:
+				//log_debug() << "fuse_leaves() == fuse_share" << std::endl;
+				m_blocks.write_block(buf);
+				m_blocks.write_block(left);
+				m_blocks.write_block(right);
+				return;
+			case fuse_merge:
+				//log_debug() << "fuse_leaves() == fuse_merge" << std::endl;
+				m_blocks.write_block(buf);
+				m_blocks.write_block(left);
+				m_blocks.free_block(right);
 				break;
 		}
-		*/
+
+		p.parent();
+
+		while (!p.empty() && block.underfull()) {
+			memory_size_type i = p.current_index();
+			m_blocks.read_block(p.current_block(), buf);
+			memory_size_type rightIndex = (i == 0) ? 1 : i;
+			m_blocks.read_block(block.child(rightIndex-1), left);
+			m_blocks.read_block(block.child(rightIndex), right);
+			switch (block.fuse(rightIndex, left, right)) {
+				case fuse_share:
+					//log_debug() << "Erase fuse_share of " << left.get_handle()
+						//<< " and " << right.get_handle() << std::endl;
+					m_blocks.write_block(buf);
+					m_blocks.write_block(left);
+					m_blocks.write_block(right);
+					return;
+				case fuse_merge:
+					//log_debug() << "Erase fuse_merge of " << left.get_handle()
+						//<< " and " << right.get_handle() << std::endl;
+					m_blocks.write_block(buf);
+					m_blocks.write_block(left);
+					m_blocks.free_block(right);
+					break;
+			}
+			p.parent();
+		}
+		if (p.empty() && block.degree() == 1) {
+			m_root = block.child(0);
+			m_blocks.free_block(buf);
+			log_debug() << "Decrease tree height to " << m_treeHeight << "; root is now " << m_root << std::endl;
+			--m_treeHeight;
+		}
 	}
 
 	memory_size_type count(Key k) {
@@ -720,7 +791,7 @@ private:
 
 			memory_size_type i;
 			for (i = 0; i != b.keys(); ++i)
-				if (!m_comp(b.key(i), k)) break;
+				if (m_comp(k, b.key(i))) break;
 
 			res.follow(buf.get_handle(), i);
 
