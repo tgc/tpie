@@ -59,6 +59,8 @@ struct b_tree_header {
 	uint64_t degree;
 };
 
+// Contains the "branching parameter" nodeMax and the "leaf parameter" leafMax,
+// which are called b and k respectively in the paper.
 struct b_tree_parameters {
 	uint64_t nodeMin;
 	uint64_t nodeMax;
@@ -83,6 +85,7 @@ public:
 	static Key      get_val(ptr_type p) { return p; }
 };
 
+// Result of a fuse operation.
 enum fuse_result {
 	/** `left` and `right` are still in use. */
 	fuse_share,
@@ -91,6 +94,7 @@ enum fuse_result {
 	fuse_merge
 };
 
+// Functor for partitioning an array of Values according to a given Key.
 template <typename Traits>
 class key_less_than {
 	typedef typename Traits::Key Key;
@@ -112,6 +116,7 @@ public:
 	}
 };
 
+// Comparator for sorting an array of Values by their Keys.
 template <typename Traits>
 class key_less {
 	typedef typename Traits::Value Value;
