@@ -73,7 +73,7 @@ bool b_tree_erase_test(key_type items) {
 	for (key_type i = 0; i < items; ++i) {
 		t.insert(i);
 	}
-	for (key_type i = 1; i < items; i += 2) {
+	for (key_type i = 0; i < items; i += 2) {
 		t.erase(i);
 	}
 	std::vector<key_type> output;
@@ -85,7 +85,7 @@ bool b_tree_erase_test(key_type items) {
 	}
 
 	for (key_type i = 0; i < items / 2; ++i) {
-		if (output[i] != i*2) {
+		if (output[i] != 1+i*2) {
 			tpie::log_error() << "B tree dump incorrect @ " << i << std::endl;
 			return false;
 		}
