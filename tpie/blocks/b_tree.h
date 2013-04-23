@@ -214,12 +214,11 @@ public:
 			// all values in [splitPoint, insertionPoint) which are less than
 			// all values in [insertionPoint, endPoint).
 			// Let [m_values, splitPoint) be the new left leaf,
-			// and [splitPoint, insertionPoint) + v + [insertionPoint, endPoint)
+			// and [splitPoint, endPoint) + v
 			// be our new right leaf.
 			std::swap(*splitPoint, v);
-			Value * d = std::copy(splitPoint, insertionPoint, rightLeaf.m_values);
-			*d++ = v;
-			std::copy(insertionPoint, endPoint, d);
+			Value * d = std::copy(splitPoint, endPoint, rightLeaf.m_values);
+			*d = v;
 
 			m_header->degree = splitPoint - m_values;
 			rightLeaf.m_header->degree = (endPoint - splitPoint) + 1;
