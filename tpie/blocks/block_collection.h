@@ -207,7 +207,6 @@ public:
 		if (i == b) throw exception("Out of blocks");
 		*i = 1;
 		stream_size_type blockID = i - a;
-		log_debug() << "Return free block " << blockID << std::endl;
 		return block_handle(blockID);
 	}
 
@@ -222,7 +221,6 @@ public:
 		if (blockID >= block_size()) throw exception("Block handle out of bounds");
 		char * const a = m_allocationBitmap.get();
 		a[blockID] = 0;
-		log_debug() << "Mark free block " << blockID << std::endl;
 	}
 
 	void free_block(block_buffer & buf) {
