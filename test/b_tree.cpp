@@ -42,19 +42,6 @@ public:
 	dereferenced operator*() { return dereferenced(); }
 };
 
-class block_output {
-public:
-	void operator()(const tpie::blocks::block_handle & id,
-					const tpie::blocks::b_tree_block<traits> & block)
-	{
-		std::cout << "Block " << id << '\n';
-		for (size_t i = 0; i < block.keys(); ++i) {
-			std::cout << "[" << block.child(i) << "] " << block.key(i) << ' ';
-		}
-		std::cout << '[' << block.child(block.keys()) << "]\n\n";
-	}
-};
-
 int main() {
 	tpie::tpie_init();
 	{
@@ -77,8 +64,6 @@ int main() {
 			} else if (cmd == "dump") {
 				t.in_order_dump(number_output());
 				std::cout << std::endl;
-			} else if (cmd == "blocks") {
-				t.bfs_order_block_dump(block_output());
 			}
 		}
 	}
