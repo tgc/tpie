@@ -24,16 +24,19 @@
 class traits {
 public:
 	typedef size_t Key;
-	typedef size_t Value;
+	struct Value {
+		size_t key;
+		char value[40];
+	};
 	typedef std::less<size_t> Compare;
-	static Key key_of_value(const Value & v) { return static_cast<Key>(v); }
+	static Key key_of_value(const Value & v) { return v.key; }
 };
 
 class number_output {
 	class dereferenced {
 	public:
-		dereferenced & operator=(size_t n) {
-			std::cout << n << ' ';
+		dereferenced & operator=(const traits::Value & v) {
+			std::cout << v.key << ' ' << std::string(v.value, v.value+sizeof(v.value)) << std::endl;
 			return *this;
 		}
 	};
@@ -50,17 +53,32 @@ int main() {
 		tpie::blocks::b_tree<traits> t;
 		std::string cmd;
 		size_t key;
+		traits::Value v;
 		while (std::cin >> cmd) {
 			std::string line;
 			std::getline(std::cin, line);
 			if (cmd == "insert") {
 				std::stringstream ss(line);
-				while (ss >> key)
-					t.insert(key);
+				ss >> v.key;
+				std::string rest;
+				getline(ss, rest);
+				std::fill(v.value, v.value+sizeof(v.value), ' ');
+				for (size_t i = 0; i < sizeof(v.value) && i < rest.size(); ++i)
+					v.value[i] = rest[i];
+				t.insert(v);
 			} else if (cmd == "erase") {
 				std::stringstream ss(line);
 				while (ss >> key)
 					t.erase(key);
+			} else if (cmd == "get") {
+				std::stringstream ss(line);
+				while (ss >> key) {
+					if (t.try_find(key, &v)) {
+						std::cout << std::string(v.value, v.value+sizeof(v.value)) << std::endl;
+					} else {
+						std::cout << "Not found" << std::endl;
+					}
+				}
 			} else if (cmd == "dump") {
 				t.in_order_dump(number_output());
 				std::cout << std::endl;
