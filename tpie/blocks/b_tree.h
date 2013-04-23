@@ -233,13 +233,15 @@ public:
 
 		// At this point, verify that all values in the left leaf
 		// are less than all values in the right leaf.
-		Value * leftMax = std::max_element(m_values, m_values + degree(), key_less<Traits>(comp));
 		Value * rightMin = std::min_element(rightLeaf.m_values, rightLeaf.m_values + rightLeaf.degree(), key_less<Traits>(comp));
-		Key leftMaxKey = Traits::key_of_value(*leftMax);
 		Key rightMinKey = Traits::key_of_value(*rightMin);
+#ifndef TPIE_NDEBUG
+		Value * leftMax = std::max_element(m_values, m_values + degree(), key_less<Traits>(comp));
+		Key leftMaxKey = Traits::key_of_value(*leftMax);
 		if (comp(rightMinKey, leftMaxKey)) {
 			throw exception("split_insert failed to maintain order invariant");
 		}
+#endif // TPIE_NDEBUG
 		return rightMinKey;
 	}
 
