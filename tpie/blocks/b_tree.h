@@ -66,12 +66,21 @@ struct b_tree_parameters {
 	uint64_t leafMax;
 };
 
-template <typename Key>
+template <typename Key,
+		 bool PtrSized = sizeof(Key) <= sizeof(Key *)>
 class key_ops {
 public:
 	typedef Key * ptr_type;
 	static ptr_type get_ptr(Key & k)    { return &k; }
 	static Key      get_val(ptr_type p) { return *p; }
+};
+
+template <typename Key>
+class key_ops<Key, true> {
+public:
+	typedef Key ptr_type;
+	static ptr_type get_ptr(Key & k)    { return k; }
+	static Key      get_val(ptr_type p) { return p; }
 };
 
 enum fuse_result {
