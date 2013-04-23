@@ -365,15 +365,6 @@ public:
 		return m_children[idx];
 	}
 
-	void erase(memory_size_type idx, block_handle newChild) {
-		if (idx > keys()) throw exception("Block erase: Index out of bounds");
-		for (memory_size_type i = idx+1; i != keys(); ++i) {
-			m_keys[i-1] = m_keys[i];
-		}
-		m_children[idx] = newChild;
-		--m_header->degree;
-	}
-
 	void insert(memory_size_type i, Key k, block_handle leftChild, block_handle rightChild) {
 		if (full()) throw exception("Insert on full block");
 
