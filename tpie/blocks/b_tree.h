@@ -243,7 +243,7 @@ public:
 				break;
 		}
 		if (i == m_header->degree) throw exception("Key not found");
-		std::copy(m_values + (i+1), m_values + m_header->degree, m_values + i);
+		m_values[i] = m_values[m_header->degree-1];
 		--m_header->degree;
 	}
 
