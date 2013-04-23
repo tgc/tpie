@@ -180,13 +180,22 @@ public:
 		return m_values[i];
 	}
 
-	// Called by b_tree::count.
-	memory_size_type count(const Key & key, Compare comp) const {
-		for (memory_size_type i = 0; i != degree(); ++i) {
+	memory_size_type index_of(const Key & key, Compare comp) const {
+		memory_size_type i = 0;
+		while (i != degree()) {
 			Key k = Traits::key_of_value(m_values[i]);
-			if (!comp(k, key) && !comp(key, k)) return 1;
+			if (!comp(k, key) && !comp(key, k)) break;
+			++i;
 		}
-		return 0;
+		return i;
+	}
+
+	// Called by b_tree::count.
+	memory_size_type count(const Key & key, const Compare & comp) const {
+		if (index_of(key, comp) == degree())
+			return 0;
+		else
+			return 1;
 	}
 
 	// Definition 1, first bullet:
@@ -275,13 +284,8 @@ public:
 
 	// Called by b_tree::erase
 	// Pre-condition: degree() > 0.
-	void erase(const Key & key, Compare comp) {
-		memory_size_type i;
-		for (i = 0; i != m_header->degree; ++i) {
-			Key k = Traits::key_of_value(m_values[i]);
-			if (!comp(k, key) && !comp(key, k))
-				break;
-		}
+	void erase(const Key & key, const Compare & comp) {
+		memory_size_type i = index_of(key, comp);
 		if (i == m_header->degree) throw exception("Key not found");
 		m_values[i] = m_values[m_header->degree-1];
 		--m_header->degree;
