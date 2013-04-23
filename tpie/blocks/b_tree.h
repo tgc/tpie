@@ -180,6 +180,7 @@ public:
 		return m_values[i];
 	}
 
+	// Called by b_tree::count.
 	memory_size_type count(const Key & key, Compare comp) const {
 		for (memory_size_type i = 0; i != degree(); ++i) {
 			Key k = Traits::key_of_value(m_values[i]);
@@ -199,13 +200,17 @@ public:
 		return m_header->degree < m_params.leafMin;
 	}
 
+	// Called by b_tree::insert
+	// Pre-condition: !full()
 	void insert(Value v) {
 		if (full()) throw exception("Insert in full leaf");
 		m_values[m_header->degree] = v;
 		++m_header->degree;
 	}
 
+	// Called by b_tree::insert
 	// Returns the minimum key in the right buffer.
+	// Pre-condition: full()
 	Key split_insert(Value v, block_buffer & rightBuf, const Compare & comp) {
 		if (m_header->degree != m_params.leafMax) throw exception("Split insert in non-full leaf");
 
@@ -268,6 +273,8 @@ public:
 		return rightMinKey;
 	}
 
+	// Called by b_tree::erase
+	// Pre-condition: degree() > 0.
 	void erase(const Key & key, Compare comp) {
 		memory_size_type i;
 		for (i = 0; i != m_header->degree; ++i) {
@@ -280,6 +287,10 @@ public:
 		--m_header->degree;
 	}
 
+	// Called by b_tree_block::fuse_leaves.
+	// Returns fuse_merge if the `right` leaf was merged into `this`.
+	// Returns fuse_share if the two leaves shared keys with each other.
+	// In the `fuse_share` case, the new lowest key in `right` is put into `midKey`.
 	fuse_result fuse_with(b_tree_leaf & right, Key & midKey, const Compare & comp) {
 		array<Value> values(degree() + right.degree());
 		if (degree() + right.degree() <= m_params.leafMax) {
@@ -346,6 +357,7 @@ public:
 		m_keys = reinterpret_cast<Key *>(keys);
 	}
 
+	// Called by b_tree::insert after splitting the root into `left` and `right`.
 	void new_root(const Key & k, const block_handle & left, const block_handle & right) {
 		m_header->degree = 2;
 		m_keys[0] = k;
@@ -383,6 +395,8 @@ public:
 		return m_children[idx];
 	}
 
+	// Called by b_tree::insert
+	// Pre-condition: !full()
 	void insert(memory_size_type i, Key k, block_handle leftChild, block_handle rightChild) {
 		if (full()) throw exception("Insert on full block");
 
@@ -399,6 +413,8 @@ public:
 		++m_header->degree;
 	}
 
+	// Called by b_tree::insert
+	// Pre-condition: full()
 	Key split_insert(memory_size_type insertIndex,
 					 Key insertKey,
 					 block_handle leftChild,
@@ -460,6 +476,8 @@ public:
 		return midKey;
 	}
 
+	// Called by b_tree::erase
+	// Returns fuse_merge or fuse_share.
 	fuse_result fuse_leaves(memory_size_type rightIndex,
 							block_buffer & leftBuf,
 							block_buffer & rightBuf,
@@ -486,6 +504,8 @@ public:
 		}
 	}
 
+	// Called by b_tree::erase
+	// Returns fuse_merge or fuse_share.
 	fuse_result fuse(memory_size_type rightIndex,
 					 block_buffer & leftBuf,
 					 block_buffer & rightBuf)
@@ -625,6 +645,9 @@ public:
 		close();
 	}
 
+	///////////////////////////////////////////////////////////////////////////
+	/// \brief  Insert value into the B tree.
+	///////////////////////////////////////////////////////////////////////////
 	void insert(Value v) {
 		block_buffer buf;
 		Key k = Traits::key_of_value(v);
@@ -700,6 +723,9 @@ public:
 		}
 	}
 
+	///////////////////////////////////////////////////////////////////////////
+	/// \brief  Insert value from B tree given its key.
+	///////////////////////////////////////////////////////////////////////////
 	void erase(Key k) {
 		block_buffer buf;
 		b_tree_path p = key_path(buf, k);
@@ -771,6 +797,11 @@ public:
 		}
 	}
 
+	///////////////////////////////////////////////////////////////////////////
+	/// \brief  Search B tree for item with given Key.
+	///
+	/// Returns 1 if found, and 0 if not found.
+	///////////////////////////////////////////////////////////////////////////
 	memory_size_type count(Key k) {
 		block_buffer buf;
 		b_tree_path p = key_path(buf, k);
