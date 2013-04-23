@@ -526,6 +526,11 @@ public:
 			throw exception("Block size too small; leafMin >= 2 violated");
 		if (m_params.leafMax < m_params.leafMin*2-1)
 			throw exception("Block size too small; leafMax >= 2a-1 violated");
+		log_debug()
+			<< "B tree parameters\n"
+			<< "Node degree in [" << m_params.nodeMin << ", " << m_params.nodeMax << "]\n"
+			<< "Leaf degree in [" << m_params.leafMin << ", " << m_params.leafMax << "]\n"
+			<< std::flush;
 	}
 
 	~b_tree() {
