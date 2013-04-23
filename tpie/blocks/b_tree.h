@@ -692,6 +692,7 @@ public:
 			m_blocks.write_block(buf);
 			++m_treeHeight;
 			m_root = buf.get_handle();
+			log_debug() << "Increase tree height to " << m_treeHeight << "; root is now " << m_root << std::endl;
 		} else {
 			m_blocks.read_block(p.current_block(), buf);
 			block.insert(p.current_index(), k, leftChild, rightChild);
@@ -765,8 +766,8 @@ public:
 		if (p.empty() && block.degree() == 1) {
 			m_root = block.child(0);
 			m_blocks.free_block(buf);
-			log_debug() << "Decrease tree height to " << m_treeHeight << "; root is now " << m_root << std::endl;
 			--m_treeHeight;
+			log_debug() << "Decrease tree height to " << m_treeHeight << "; root is now " << m_root << std::endl;
 		}
 	}
 
