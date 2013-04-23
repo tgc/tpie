@@ -830,6 +830,12 @@ private:
 	}
 
 public:
+	///////////////////////////////////////////////////////////////////////////
+	/// \brief  Iterate through values of the tree in-order.
+	///
+	/// \tparam It  An output iterator type that has Traits::Value among its
+	///             value types.
+	///////////////////////////////////////////////////////////////////////////
 	template <typename It>
 	void in_order_dump(It it) {
 		if (m_root == block_handle(0)) {
