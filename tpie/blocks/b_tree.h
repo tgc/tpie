@@ -17,6 +17,28 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with TPIE.  If not, see <http://www.gnu.org/licenses/>
 
+///////////////////////////////////////////////////////////////////////////////
+/// \file blocks/b_tree.h  B+ tree in external memory
+///
+/// The implementation is based off the B tree described in
+/// Lars Arge, External Memory Geometric Data Structures (2005).
+///
+/// The main class `b_tree` handles reading from and writing to the underlying
+/// block collection.
+///
+/// The helper classes `b_tree_block` and `b_tree_leaf` operate on individual
+/// blocks that have been read and support primitive operations such as
+/// inserting, erasing, splitting and fusing.
+///
+/// The `b_tree` class uses these to insert and erase elements on a tree-wide
+/// scale.
+///
+/// There is a clear division of responsibility: The block and leaf classes
+/// have no access to reading from and writing to the block collection,
+/// and the b_tree class cannot modify the key/child/value arrays directly,
+/// but must do so through the helpers.
+///////////////////////////////////////////////////////////////////////////////
+
 #ifndef TPIE_BLOCKS_B_TREE_H
 #define TPIE_BLOCKS_B_TREE_H
 
@@ -24,10 +46,6 @@
 
 #include <tpie/tempname.h>
 #include <tpie/blocks/block_collection.h>
-
-/**
- * We refer to Lars Arge, External Memory Geometric Data Structures throughout.
- */
 
 namespace tpie {
 
