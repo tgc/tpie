@@ -89,8 +89,14 @@ bool verify_tree(tree_type & t, key_type a, key_type step, key_type b) {
 	return true;
 }
 
-bool b_tree_erase_test(key_type items) {
+bool b_tree_erase_test(key_type items, size_t fanout) {
 	tree_type t;
+	if (fanout != 0) {
+		tpie::blocks::b_tree_parameters params = t.get_parameters();
+		params.nodeMax = params.leafMax = fanout;
+		params.nodeMin = params.leafMin = (fanout + 3) / 4;
+		t.set_parameters(params);
+	}
 	for (key_type i = 0; i < items; ++i) {
 		t.insert(i);
 	}
@@ -114,6 +120,8 @@ int main(int argc, char ** argv) {
 	return tpie::tests(argc, argv)
 	.test(b_tree_test, "b_tree")
 	.test(b_tree_test_2, "b_tree_2", "n", static_cast<key_type>(1000))
-	.test(b_tree_erase_test, "b_tree_erase", "n", static_cast<key_type>(1000))
+	.test(b_tree_erase_test, "b_tree_erase",
+		  "n", static_cast<key_type>(1000),
+		  "fanout", static_cast<size_t>(0))
 	;
 }
