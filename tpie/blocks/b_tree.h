@@ -640,11 +640,41 @@ public:
 		: m_root(0)
 		, m_treeHeight(0)
 	{
+		set_default_parameters();
 		open();
+	}
+
+	~b_tree() {
+		close();
+	}
+
+	void set_default_parameters() {
 		m_params.nodeMax = b_tree_block<Traits>::calculate_fanout(block_size());
 		m_params.nodeMin = (m_params.nodeMax + 3)/4;
 		m_params.leafMax = b_tree_leaf<Traits>::calculate_fanout(block_size());
 		m_params.leafMin = (m_params.leafMax + 3)/4;
+		verify_parameters();
+		log_parameters();
+	}
+
+	b_tree_parameters get_parameters() const {
+		return m_params;
+	}
+
+	void set_parameters(const b_tree_parameters & params) {
+		b_tree_parameters prev = m_params;
+		m_params = params;
+		try {
+			verify_parameters();
+			log_parameters();
+		} catch (const exception &) {
+			m_params = prev;
+			throw;
+		}
+	}
+
+private:
+	void verify_parameters() {
 		if (m_params.nodeMin < 2)
 			throw exception("Block size too small; nodeMin >= 2 violated");
 		if (m_params.nodeMax < m_params.nodeMin*2-1)
@@ -653,6 +683,9 @@ public:
 			throw exception("Block size too small; leafMin >= 2 violated");
 		if (m_params.leafMax < m_params.leafMin*2-1)
 			throw exception("Block size too small; leafMax >= 2a-1 violated");
+	}
+
+	void log_parameters() {
 		log_debug()
 			<< "B tree parameters\n"
 			<< "Node degree in [" << m_params.nodeMin << ", " << m_params.nodeMax << "]\n"
@@ -660,10 +693,7 @@ public:
 			<< std::flush;
 	}
 
-	~b_tree() {
-		close();
-	}
-
+public:
 	///////////////////////////////////////////////////////////////////////////
 	/// \brief  Insert value into the B tree.
 	///////////////////////////////////////////////////////////////////////////
