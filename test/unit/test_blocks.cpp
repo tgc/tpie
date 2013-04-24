@@ -68,29 +68,45 @@ bool b_tree_test_2(key_type items) {
 	return true;
 }
 
+bool verify_tree(tree_type & t, key_type a, key_type step, key_type b) {
+	size_t items = (a == b) ? 0 : ((b-a+step-1)/step);
+	std::vector<key_type> output;
+	output.reserve(items);
+	t.in_order_dump(std::back_inserter(output));
+	if (output.size() != items) {
+		tpie::log_error()
+			<< "B tree dump output incorrect no. of items" << std::endl;
+		return false;
+	}
+	key_type expect = a;
+	for (size_t i = 0; i < items; ++i) {
+		if (output[i] != expect) {
+			tpie::log_error() << "B tree dump incorrect @ " << i << std::endl;
+			return false;
+		}
+		expect += step;
+	}
+	return true;
+}
+
 bool b_tree_erase_test(key_type items) {
 	tree_type t;
 	for (key_type i = 0; i < items; ++i) {
 		t.insert(i);
 	}
+	if (!verify_tree(t, 0, 1, items)) return false;
 	for (key_type i = 0; i < items; i += 2) {
 		t.erase(i);
 	}
-	std::vector<key_type> output;
-	output.reserve(items/2);
-	t.in_order_dump(std::back_inserter(output));
-	if (output.size() != items / 2) {
-		tpie::log_error() << "B tree dump output incorrect no. of items" << std::endl;
-		return false;
+	if (!verify_tree(t, 1, 2, items)) return false;
+	for (key_type i = 0; i < items; i += 2) {
+		t.insert(i);
 	}
-
-	for (key_type i = 0; i < items / 2; ++i) {
-		if (output[i] != 1+i*2) {
-			tpie::log_error() << "B tree dump incorrect @ " << i << std::endl;
-			return false;
-		}
+	if (!verify_tree(t, 0, 1, items)) return false;
+	for (key_type i = 0; i < items; ++i) {
+		t.erase(i);
 	}
-
+	if (!verify_tree(t, 0, 0, 0)) return false;
 	return true;
 }
 
