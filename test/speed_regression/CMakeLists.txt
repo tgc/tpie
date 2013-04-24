@@ -33,3 +33,7 @@ set_target_properties(pipeline_speed_test PROPERTIES FOLDER tpie/test)
 add_executable(pipelining_sort_test pipelining_sort_test.cpp)
 target_link_libraries(pipelining_sort_test tpie)
 set_target_properties(pipelining_sort_test PROPERTIES FOLDER tpie/test)
+
+add_executable(free_space_bitmap free_space_bitmap.cpp ${SPEED_DEPS})
+target_link_libraries(free_space_bitmap tpie)
+set_target_properties(free_space_bitmap PROPERTIES FOLDER tpie/test)
