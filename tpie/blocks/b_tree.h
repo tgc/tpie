@@ -74,6 +74,7 @@ public:
 };
 
 struct b_tree_header {
+	/** Number of child blocks or leaf values. */
 	uint64_t degree;
 };
 
@@ -518,7 +519,7 @@ public:
 		b_tree_block<Traits> right(rightBuf, m_params);
 
 		std::vector<Key> keys(left.keys() + 1 + right.keys());
-		std::vector<block_handle> children(left.keys() + right.keys() + 2);
+		std::vector<block_handle> children(left.degree() + right.degree());
 
 		{
 			memory_size_type output = 0;
@@ -528,7 +529,7 @@ public:
 				++output;
 			}
 			keys[output] = key(rightIndex-1);
-			children[output] = left.child(output);
+			children[output] = left.child(left.keys());
 			++output;
 			for (memory_size_type i = 0; i < right.keys(); ++i) {
 				keys[output] = right.key(i);
@@ -536,36 +537,50 @@ public:
 				++output;
 			}
 			children[output] = right.child(right.keys());
+			++output;
 		}
 
 		if (children.size() <= m_params.nodeMax) {
-			std::copy(keys.begin(), keys.end(), &left.m_keys[0]);
-			std::copy(children.begin(), children.end(), &left.m_children[0]);
+			std::copy(keys.begin(),
+					  keys.end(),
+					  &left.m_keys[0]);
+			std::copy(children.begin(),
+					  children.end(),
+					  &left.m_children[0]);
 			left.m_header->degree = static_cast<uint64_t>(children.size());
 
-			// TODO verify
-			for (memory_size_type i = rightIndex; i < this->keys(); ++i) {
-				m_keys[i-1] = m_keys[i];
-				m_children[i] = m_children[i+1];
-			}
+			std::copy(&m_keys[rightIndex],
+					  &m_keys[this->keys()],
+					  &m_keys[rightIndex-1]);
+			std::copy(&m_children[rightIndex+1],
+					  &m_children[degree()],
+					  &m_children[rightIndex]);
 			--m_header->degree;
 
 			return fuse_merge;
 
 		} else {
 
-			// TODO
+			memory_size_type half = children.size()/2;
+			std::copy(keys.begin(),
+					  keys.begin() + (half - 1),
+					  &left.m_keys[0]);
+			std::copy(children.begin(),
+					  children.begin() + half,
+					  &left.m_children[0]);
+			left.m_header->degree =
+				static_cast<uint64_t>(half);
 
-			memory_size_type half = keys.size()/2;
-			std::copy(keys.begin(), keys.begin() + half, &left.m_keys[0]);
-			std::copy(children.begin(), children.begin() + (half + 1), &left.m_children[0]);
-			left.m_header->degree = static_cast<uint64_t>(half - 1);
+			m_keys[rightIndex-1] = keys[half-1];
 
-			m_keys[rightIndex-1] = keys[half];
-
-			std::copy(keys.begin() + 1, keys.end(), &right.m_keys[0]);
-			std::copy(children.begin() + 1, children.end(), &right.m_children[0]);
-			right.m_header->degree = static_cast<uint64_t>(keys.size() - half);
+			std::copy(keys.begin() + half,
+					  keys.end(),
+					  &right.m_keys[0]);
+			std::copy(children.begin() + half,
+					  children.end(),
+					  &right.m_children[0]);
+			right.m_header->degree =
+				static_cast<uint64_t>(children.size() - half);
 
 			return fuse_share;
 		}
