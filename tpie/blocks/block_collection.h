@@ -122,6 +122,55 @@ private:
 	block_handle m_handle;
 };
 
+class free_space_block {
+public:
+	block_buffer & get_buffer() { return m_buffer; }
+
+	void resize(memory_size_type blockSize) {
+		m_buffer.resize(blockSize);
+		m_bufferStart = reinterpret_cast<size_t *>(m_buffer.get());
+		m_bufferNext = m_bufferStart;
+		m_bufferEnd = reinterpret_cast<size_t *>(m_buffer.get()
+												 + m_buffer.size());
+		std::fill(m_bufferStart, m_bufferEnd, 0);
+	}
+
+	void initial() {
+		m_bufferStart[0] = 0x1;
+		m_buffer.set_handle(block_handle(0));
+	}
+
+	block_handle get_free_block() {
+		while (m_bufferNext != m_bufferEnd && ~*m_bufferNext == 0)
+			++m_bufferNext;
+		if (m_bufferNext == m_bufferEnd) throw exception("Out of blocks");
+		stream_size_type id = (m_bufferNext - m_bufferStart) * sizeof(size_t) * 8;
+		size_t i = 1;
+		while (i != 0 && (*m_bufferNext & i) == i) {
+			i = i << 1;
+			++id;
+		}
+		if (i == 0) throw exception("A bit trick went wrong");
+		*m_bufferNext |= i;
+		return block_handle(id);
+	}
+
+	void free_block(block_handle handle) {
+		memory_size_type id = static_cast<memory_size_type>(handle);
+		memory_size_type hi = id / (sizeof(size_t) * 8);
+		memory_size_type lo = id % (sizeof(size_t) * 8);
+		size_t * b = m_bufferStart + hi;
+		*b &= ~(static_cast<size_t>(1) << lo);
+		m_bufferNext = std::min(m_bufferNext, b);
+	}
+
+private:
+	block_buffer m_buffer;
+	size_t * m_bufferStart;
+	size_t * m_bufferNext;
+	size_t * m_bufferEnd;
+};
+
 class block_collection {
 public:
 	static memory_size_type default_block_size() {
@@ -144,7 +193,7 @@ public:
 			write_allocation_bitmap();
 			m_accessor.close();
 			m_open = false;
-			m_allocationBitmap.resize(0);
+			m_freeSpace.resize(0);
 		}
 	}
 
@@ -161,10 +210,7 @@ public:
 
 		m_write = writable;
 
-		m_allocationBitmap.resize(block_size());
-		std::fill(m_allocationBitmap.get(),
-				  m_allocationBitmap.get() + block_size(),
-				  0);
+		m_freeSpace.resize(block_size());
 
 		if (m_accessor.size() == 0)
 			initial_allocation_bitmap();
@@ -174,18 +220,16 @@ public:
 
 private:
 	void initial_allocation_bitmap() {
-		char * const a = m_allocationBitmap.get();
-		a[0] = 1;
-		m_allocationBitmap.set_handle(block_handle(0));
+		m_freeSpace.initial();
 		write_allocation_bitmap();
 	}
 
 	void read_allocation_bitmap() {
-		read_block(block_handle(0), m_allocationBitmap);
+		read_block(block_handle(0), m_freeSpace.get_buffer());
 	}
 
 	void write_allocation_bitmap() {
-		write_block(m_allocationBitmap);
+		write_block(m_freeSpace.get_buffer());
 	}
 
 public:
@@ -197,17 +241,7 @@ public:
 	///////////////////////////////////////////////////////////////////////////
 	block_handle get_free_block() {
 		if (!m_write) throw exception("get_free_block: !m_write");
-		char * const a = m_allocationBitmap.get();
-		char * const b = a + block_size();
-
-		char * i;
-		for (i = a; i != b; ++i) {
-			if (*i == 0) break;
-		}
-		if (i == b) throw exception("Out of blocks");
-		*i = 1;
-		stream_size_type blockID = i - a;
-		return block_handle(blockID);
+		return m_freeSpace.get_free_block();
 	}
 
 	void get_free_block(block_buffer & buf) {
@@ -217,10 +251,7 @@ public:
 	}
 
 	void free_block(block_handle handle) {
-		stream_size_type blockID = handle;
-		if (blockID >= block_size()) throw exception("Block handle out of bounds");
-		char * const a = m_allocationBitmap.get();
-		a[blockID] = 0;
+		m_freeSpace.free_block(handle);
 	}
 
 	void free_block(block_buffer & buf) {
@@ -253,7 +284,7 @@ private:
 
 	memory_size_type m_blockSize;
 
-	block_buffer m_allocationBitmap;
+	free_space_block m_freeSpace;
 
 };
 
