@@ -89,7 +89,7 @@ public:
 	}
 
 	block_buffer(memory_size_type size)
-		: m_buffer(size)
+		: m_buffer(size, 0)
 	{
 	}
 
@@ -246,7 +246,6 @@ public:
 
 	void get_free_block(block_buffer & buf) {
 		buf.set_handle(get_free_block());
-		buf.resize(0);
 		buf.resize(block_size());
 	}
 
