@@ -98,8 +98,12 @@ bool b_tree_erase_test(key_type items, size_t fanout) {
 		params.nodeMin = params.leafMin = (fanout + 3) / 4;
 		t.set_parameters(params);
 	}
-	for (key_type i = 0; i < items; ++i) {
-		t.insert(i);
+	{
+		builder_type b(t);
+		for (key_type i = 0; i < items; ++i) {
+			b.push(i);
+		}
+		b.end();
 	}
 	if (!verify_tree(t, 0, 1, items)) return false;
 	for (key_type i = 0; i < items; i += 2) {
