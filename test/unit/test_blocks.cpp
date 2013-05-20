@@ -69,25 +69,59 @@ bool b_tree_test_2(key_type items) {
 	return true;
 }
 
+class verify_iterator {
+public:
+	verify_iterator(size_t * outputSize, bool * error, key_type * i, key_type a, key_type step, key_type b)
+		: outputSize(outputSize)
+		, error(error)
+		, i(i)
+		, a(a)
+		, step(step)
+		, b(b)
+	{
+	}
+
+	void operator++() const {}
+
+	const verify_iterator & operator*() const {
+		return *this;
+	}
+
+	const verify_iterator & operator=(key_type v) const {
+		++*outputSize;
+		if (*error) return *this;
+		if (v != *i) {
+			tpie::log_error() << "B tree dump incorrect: got " << v << ", expected " << *i << std::endl;
+			*error = true;
+		} else {
+			*i += step;
+		}
+		return *this;
+	}
+
+private:
+	size_t * outputSize;
+	bool * error;
+	key_type * i;
+	key_type a;
+	key_type step;
+	key_type b;
+};
+
 bool verify_tree(tree_type & t, key_type a, key_type step, key_type b) {
 	size_t items = (a == b) ? 0 : ((b-a+step-1)/step);
-	std::vector<key_type> output;
-	output.reserve(items);
-	t.in_order_dump(std::back_inserter(output));
-	if (output.size() != items) {
+	size_t outputSize = 0;
+	key_type i = a;
+	bool error = false;
+	t.in_order_dump(verify_iterator(&outputSize, &error, &i, a, step, b));
+	if (outputSize != items) {
 		tpie::log_error()
-			<< "B tree dump output incorrect no. of items" << std::endl;
+			<< "B tree dump output incorrect no. of items\n"
+			<< "Expected " << items << "; got " << outputSize << '\n'
+			<< std::flush;
 		return false;
 	}
-	key_type expect = a;
-	for (size_t i = 0; i < items; ++i) {
-		if (output[i] != expect) {
-			tpie::log_error() << "B tree dump incorrect @ " << i << std::endl;
-			return false;
-		}
-		expect += step;
-	}
-	return true;
+	return !error;
 }
 
 bool b_tree_erase_test(key_type items, size_t fanout) {
