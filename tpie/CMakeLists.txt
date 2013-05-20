@@ -6,6 +6,8 @@ set (HEADERS
 		access_type.h
 		ami.h
 		backtrace.h
+		blocks/block_collection.h
+		blocks/b_tree.h
 		cache_hint.h
 		comparator.h
 		config.h.cmake
