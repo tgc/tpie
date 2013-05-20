@@ -24,6 +24,7 @@
 typedef size_t key_type;
 typedef tpie::blocks::b_tree_traits<key_type> traits_type;
 typedef tpie::blocks::b_tree<traits_type> tree_type;
+typedef tpie::blocks::b_tree_builder<traits_type> builder_type;
 
 bool b_tree_test() {
 	bool result = true;
@@ -116,6 +117,17 @@ bool b_tree_erase_test(key_type items, size_t fanout) {
 	return true;
 }
 
+bool b_tree_builder_test(key_type n) {
+	tree_type t;
+	{
+		builder_type builder(t);
+		for (key_type i = 0; i < n; ++i) builder.push(i);
+		builder.end();
+	}
+	if (!verify_tree(t, 0, 1, n)) return false;
+	return true;
+}
+
 int main(int argc, char ** argv) {
 	return tpie::tests(argc, argv)
 	.test(b_tree_test, "b_tree")
@@ -123,5 +135,6 @@ int main(int argc, char ** argv) {
 	.test(b_tree_erase_test, "b_tree_erase",
 		  "n", static_cast<key_type>(1000),
 		  "fanout", static_cast<size_t>(0))
+	.test(b_tree_builder_test, "b_tree_builder", "n", static_cast<key_type>(1000))
 	;
 }
