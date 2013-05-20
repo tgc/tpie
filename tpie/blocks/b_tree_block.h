@@ -66,6 +66,7 @@ public:
 		m_header->degree = 0;
 	}
 
+	// Internal helper used by b_tree_builder.
 	void push_first_child(block_handle block) {
 		if (!empty())
 			throw exception("push_first_child: !empty");
@@ -74,6 +75,7 @@ public:
 		m_header->degree = 1;
 	}
 
+	// Internal helper used by b_tree_builder.
 	void push_child(Key k, block_handle block) {
 		if (full())
 			throw exception("push_child: full");

@@ -30,6 +30,7 @@ namespace tpie {
 
 namespace blocks {
 
+// Example of a traits class to pass as template parameter to the b_tree class.
 template <typename T>
 class b_tree_traits {
 public:
@@ -66,6 +67,12 @@ struct b_tree_parameters {
 	uint64_t leafMax;
 };
 
+// key_ops is used in b_tree_block::split_insert to decide whether
+// to take pointers into the original key arrays (expensive due to indirection)
+// or to copy keys into the temporary storage (expensive in space).
+// If the key is as big as its pointer, it makes no sense to introduce indirection.
+// On the other hand, if the key is larger than its pointer, we don't want
+// to waste memory on copying keys around.
 template <typename Key,
 		 bool PtrSized = sizeof(Key) <= sizeof(Key *)>
 class key_ops {
@@ -169,6 +176,8 @@ private:
 	std::vector<std::pair<block_handle, memory_size_type> > m_components;
 };
 
+// Finite state machine embedded in the b_tree_builder
+// to check that methods are called in the right order.
 struct builder_state {
 	enum type {
 		/** No items have been pushed. */

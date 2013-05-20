@@ -195,6 +195,12 @@ public:
 					  values.get() + degree());
 
 			Value * midPoint = values.get() + values.size() / 2;
+			/* We could as well have used std::sort here,
+			 * but the only order we care about is that all
+			 * keys in the left leaf are less than all keys
+			 * in the right leaf.
+			 * A linear time nth_element is better than a sort.
+			 */
 			std::nth_element(values.get(),
 							 midPoint,
 							 values.get() + values.size(),

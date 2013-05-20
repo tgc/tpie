@@ -128,17 +128,20 @@ public:
 	void insert(Value v) {
 		block_buffer buf;
 		Key k = Traits::key_of_value(v);
+		// Find the leaf in which the value should be inserted.
 		b_tree_path p = key_path(buf, k);
 		block_handle leftChild;
 		block_handle rightChild;
 
 		{
+			// If the leaf is not full, we do a cheap insert and return.
 			b_tree_leaf<Traits> leaf(buf, m_params);
 			if (!leaf.full()) {
 				leaf.insert(v);
 				m_blocks.write_block(buf);
 				return;
 			} else {
+				// Split the leaf.
 				block_buffer & left = buf;
 				block_buffer right;
 
@@ -147,13 +150,15 @@ public:
 				k = leaf.split_insert(v, right, m_comp);
 				m_blocks.write_block(left);
 				m_blocks.write_block(right);
+
+				// Proceed with recursive insertion below.
 				leftChild = left.get_handle();
 				rightChild = right.get_handle();
 			}
 		}
 
 		if (p.empty()) {
-			// The root was previously a single leaf
+			// Special case: The root was previously a single leaf
 			// which has now been split into two.
 			m_blocks.get_free_block(buf);
 			b_tree_block<Traits> block(buf, m_params);
@@ -167,6 +172,8 @@ public:
 
 		b_tree_block<Traits> block(buf, m_params);
 
+		// Repeatedly split blocks until we hit a non-full block
+		// or we hit the root of the tree.
 		while (!p.empty()) {
 			m_blocks.read_block(p.current_block(), buf);
 			if (!block.full()) break;
@@ -194,6 +201,7 @@ public:
 			m_root = buf.get_handle();
 			log_debug() << "Increase tree height to " << m_treeHeight << "; root is now " << m_root << std::endl;
 		} else {
+			// We hit a non-full block.
 			m_blocks.read_block(p.current_block(), buf);
 			block.insert(p.current_index(), k, leftChild, rightChild);
 			m_blocks.write_block(buf);
@@ -205,6 +213,7 @@ public:
 	///////////////////////////////////////////////////////////////////////////
 	void erase(Key k) {
 		block_buffer buf;
+		// Find leaf from which to erase.
 		b_tree_path p = key_path(buf, k);
 		{
 			b_tree_leaf<Traits> leaf(buf, m_params);
@@ -212,10 +221,14 @@ public:
 			leaf.erase(k, m_comp);
 
 			m_blocks.write_block(buf);
+			// If leaf is not underfull, or the leaf is the root of the tree,
+			// we quickly return.
 			if (p.empty() || !leaf.underfull()) {
 				return;
 			}
 		}
+
+		// Recursively fuse blocks until we hit a block that is not underfull.
 
 		memory_size_type rightIndex = p.current_index() == 0 ? 1 : p.current_index();
 		block_buffer left;
@@ -289,7 +302,9 @@ public:
 	///////////////////////////////////////////////////////////////////////////
 	/// \brief  Search B tree for item with given Key.
 	///
-	/// If found, assigns the result to *out.
+	/// If found, assigns the result to *out. `out` must be non-null.
+	/// If you do not need the value associated to the key,
+	/// use count() instead.
 	///
 	/// Returns true if found; false otherwise.
 	///////////////////////////////////////////////////////////////////////////
@@ -345,10 +360,10 @@ private:
 	}
 
 	///////////////////////////////////////////////////////////////////////////
-	/// \brief  Search the tree for the given key.
+	/// \brief  Search the tree for the insertion point of a given key.
 	///
-	/// Reuses the given block buffer when changing node and returns the index
-	/// in the block where the key is found or should be inserted.
+	/// The leaf in which to insert is read into `buf`, and the path to the
+	/// buffer is returned.
 	///////////////////////////////////////////////////////////////////////////
 	b_tree_path key_path(block_buffer & buf, Key k) {
 		b_tree_path res;
