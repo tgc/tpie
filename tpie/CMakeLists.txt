@@ -7,7 +7,11 @@ set (HEADERS
 		ami.h
 		backtrace.h
 		blocks/block_collection.h
+		blocks/b_tree_bits.h
+		blocks/b_tree_leaf.h
+		blocks/b_tree_block.h
 		blocks/b_tree.h
+		blocks/b_tree_builder.h
 		cache_hint.h
 		comparator.h
 		config.h.cmake
