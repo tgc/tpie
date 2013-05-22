@@ -69,14 +69,18 @@ public:
 		, m_treeHeight(0)
 	{
 		set_default_parameters();
-		open();
 	}
 
 	~b_tree() {
 		close();
 	}
 
+	bool is_open() const {
+		return m_blocks.is_open();
+	}
+
 	void set_default_parameters() {
+		if (is_open()) throw exception("set_default_parameters: block collection already open");
 		m_params.nodeMax = b_tree_block<Traits>::calculate_fanout(block_size());
 		m_params.nodeMin = (m_params.nodeMax + 3)/4;
 		m_params.leafMax = b_tree_leaf<Traits>::calculate_fanout(block_size());
@@ -90,6 +94,7 @@ public:
 	}
 
 	void set_parameters(const b_tree_parameters & params) {
+		if (is_open()) throw exception("set_parameters: block collection already open");
 		b_tree_parameters prev = m_params;
 		m_params = params;
 		try {
@@ -126,6 +131,7 @@ public:
 	/// \brief  Insert value into the B tree.
 	///////////////////////////////////////////////////////////////////////////
 	void insert(Value v) {
+		if (!is_open()) throw exception("insert: block collection not open");
 		block_buffer buf;
 		Key k = Traits::key_of_value(v);
 		// Find the leaf in which the value should be inserted.
@@ -212,6 +218,7 @@ public:
 	/// \brief  Erase value from B tree given its key.
 	///////////////////////////////////////////////////////////////////////////
 	void erase(Key k) {
+		if (!is_open()) throw exception("erase: block collection not open");
 		block_buffer buf;
 		// Find leaf from which to erase.
 		b_tree_path p = key_path(buf, k);
@@ -293,6 +300,7 @@ public:
 	/// Returns 1 if found, and 0 if not found.
 	///////////////////////////////////////////////////////////////////////////
 	memory_size_type count(Key k) {
+		if (!is_open()) throw exception("count: block collection not open");
 		block_buffer buf;
 		b_tree_path p = key_path(buf, k);
 		b_tree_leaf<Traits> leaf(buf, m_params);
@@ -309,6 +317,7 @@ public:
 	/// Returns true if found; false otherwise.
 	///////////////////////////////////////////////////////////////////////////
 	bool try_find(Key k, Value * out) {
+		if (!is_open()) throw exception("try_find: block collection not open");
 		block_buffer buf;
 		b_tree_path p = key_path(buf, k);
 		b_tree_leaf<Traits> leaf(buf, m_params);
@@ -330,6 +339,7 @@ public:
 	/// use `try_find` instead.
 	///////////////////////////////////////////////////////////////////////////
 	Value find(Key k) {
+		if (!is_open()) throw exception("find: block collection not open");
 		Value out;
 		if (try_find(k, &out))
 			return out;
@@ -337,14 +347,41 @@ public:
 			throw exception("Value with given key not found");
 	}
 
-private:
+	///////////////////////////////////////////////////////////////////////////
+	/// \brief  Open an anonymous B tree.
+	///////////////////////////////////////////////////////////////////////////
 	void open() {
-		m_blocks.open(m_tempFile.path(), true);
+		open_inner(m_tempFile.path());
 	}
 
+	///////////////////////////////////////////////////////////////////////////
+	/// \brief  Open the B tree to the given block collection.
+	///////////////////////////////////////////////////////////////////////////
+	void open(tpie::temp_file & tempFile) {
+		open_inner(tempFile.path());
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	/// \brief  Open the B tree to the given block collection.
+	///////////////////////////////////////////////////////////////////////////
+	void open(std::string path) {
+		open_inner(path);
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	/// \brief  Close B tree.
+	///////////////////////////////////////////////////////////////////////////
 	void close() {
-		m_blocks.close();
-		boost::filesystem::remove(m_tempFile.path());
+		if (is_open()) {
+			m_blocks.close();
+			m_tempFile.free();
+		}
+	}
+
+private:
+	void open_inner(const std::string & path) {
+		if (is_open()) throw exception("open: block collection already open");
+		m_blocks.open(path, true);
 	}
 
 	memory_size_type block_size() {
@@ -397,6 +434,7 @@ public:
 	///////////////////////////////////////////////////////////////////////////
 	template <typename It>
 	void in_order_dump(It it) {
+		if (!is_open()) throw exception("in_order_dump: block collection not open");
 		if (m_root == block_handle(0)) {
 			log_debug() << "in_order_dump: Empty tree" << std::endl;
 			return;

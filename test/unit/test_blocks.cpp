@@ -29,6 +29,7 @@ typedef tpie::blocks::b_tree_builder<traits_type> builder_type;
 bool b_tree_test() {
 	bool result = true;
 	tree_type t;
+	t.open();
 	for (key_type i = 0; i < 100; ++i) {
 		t.insert((3*i) % 100);
 		if (!t.count((i/2*3) % 100)) {
@@ -43,6 +44,7 @@ bool b_tree_test_2(key_type items) {
 	key_type p = static_cast<key_type>(tpie::next_prime(static_cast<size_t>(items+1)));
 	tpie::log_debug() << "Generating items " << p << "*i%" << items << " for i in [0," << items << ")" << std::endl;
 	tree_type t;
+	t.open();
 	for (key_type i = 0; i < items; ++i) {
 		try {
 			t.insert(p*i%items);
@@ -126,6 +128,7 @@ bool verify_tree(tree_type & t, key_type a, key_type step, key_type b) {
 
 bool b_tree_erase_test(key_type items, size_t fanout) {
 	tree_type t;
+	t.open();
 	if (fanout != 0) {
 		tpie::blocks::b_tree_parameters params = t.get_parameters();
 		params.nodeMax = params.leafMax = fanout;
@@ -157,6 +160,7 @@ bool b_tree_erase_test(key_type items, size_t fanout) {
 
 bool b_tree_builder_test(key_type n) {
 	tree_type t;
+	t.open();
 	{
 		builder_type builder(t);
 		for (key_type i = 0; i < n; ++i) builder.push(i);

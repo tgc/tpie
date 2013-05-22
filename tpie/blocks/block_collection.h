@@ -188,6 +188,10 @@ public:
 		close();
 	}
 
+	bool is_open() const {
+		return m_open;
+	}
+
 	void close() {
 		if (m_open) {
 			write_allocation_bitmap();
