@@ -20,6 +20,7 @@
 #include "common.h"
 #include <tpie/blocks/b_tree.h>
 #include <tpie/prime.h>
+#include <tpie/pipelining/b_tree.h>
 
 typedef size_t key_type;
 typedef tpie::blocks::b_tree_traits<key_type> traits_type;
@@ -170,6 +171,47 @@ bool b_tree_builder_test(key_type n) {
 	return true;
 }
 
+template <typename dest_t>
+class iota_t : public tpie::pipelining::node {
+	key_type n;
+	dest_t dest;
+public:
+	iota_t(dest_t dest, key_type n)
+		: n(n)
+		, dest(dest)
+	{
+		this->set_steps(n);
+		this->add_push_destination(dest);
+		this->set_name("Iota");
+	}
+
+	virtual void go() {
+		for (key_type i = 0; i < n; ++i) {
+			dest.push(i);
+			this->step();
+		}
+	}
+};
+
+tpie::pipelining::pipe_begin<tpie::pipelining::factory_1<iota_t, key_type> >
+iota(key_type n) {
+	return tpie::pipelining::factory_1<iota_t, key_type>(n);
+}
+
+bool b_tree_builder_pipe_test(key_type n) {
+	tree_type t;
+	t.open();
+	{
+		builder_type builder(t);
+		tpie::pipelining::pipeline p =
+			iota(n) | tpie::pipelining::b_tree_builder(builder);
+		p.plot(tpie::log_debug());
+		p();
+	}
+	if (!verify_tree(t, 0, 1, n)) return false;
+	return true;
+}
+
 int main(int argc, char ** argv) {
 	return tpie::tests(argc, argv)
 	.test(b_tree_test, "b_tree")
@@ -178,5 +220,6 @@ int main(int argc, char ** argv) {
 		  "n", static_cast<key_type>(1000),
 		  "fanout", static_cast<size_t>(0))
 	.test(b_tree_builder_test, "b_tree_builder", "n", static_cast<key_type>(1000))
+	.test(b_tree_builder_pipe_test, "b_tree_builder_pipe", "n", static_cast<key_type>(1000))
 	;
 }

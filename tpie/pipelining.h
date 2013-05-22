@@ -37,6 +37,7 @@
 #include <tpie/pipelining/virtual.h>
 
 // Library
+#include <tpie/pipelining/b_tree.h>
 #include <tpie/pipelining/buffer.h>
 #include <tpie/pipelining/file_stream.h>
 #include <tpie/pipelining/helpers.h>
