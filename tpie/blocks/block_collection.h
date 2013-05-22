@@ -220,6 +220,9 @@ public:
 			initial_allocation_bitmap();
 		else
 			read_allocation_bitmap();
+
+		m_open = true;
+		// TODO exception safety
 	}
 
 private:
