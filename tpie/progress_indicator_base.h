@@ -205,10 +205,10 @@ private:
 	///////////////////////////////////////////////////////////////////////////
 	/// Makes sure m_threshold has been set.
 	///////////////////////////////////////////////////////////////////////////
-	TPIE_PUBLIC  static void compute_threshold();
+	static void compute_threshold();
 
-	TPIE_PUBLIC progress_indicator_base();
-	TPIE_PUBLIC progress_indicator_base(const progress_indicator_base& other);
+	progress_indicator_base();
+	progress_indicator_base(const progress_indicator_base& other);
 };
 
 }  //  tpie namespace
