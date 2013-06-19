@@ -45,8 +45,36 @@ bool basic_test(size_t n) {
 	return true;
 }
 
+bool read_seek_test() {
+	size_t items = 1 << 15;
+	size_t seekPosition = 1 << 10;
+	tpie::temp_file tf;
+	tpie::compressed_stream<size_t> s;
+	s.open(tf);
+	tpie::log_debug() << s.describe() << std::endl;
+	for (size_t i = 0; i < items; ++i) s.write(i);
+	tpie::log_debug() << s.describe() << std::endl;
+	s.seek(0);
+	tpie::log_debug() << s.describe() << std::endl;
+	for (size_t i = 0; i < seekPosition; ++i) s.read();
+	tpie::log_debug() << s.describe() << std::endl;
+	tpie::stream_position pos = s.get_position();
+	tpie::log_debug() << s.describe() << std::endl;
+	for (size_t i = seekPosition; i < items; ++i) s.read();
+	tpie::log_debug() << s.describe() << std::endl;
+	s.set_position(pos);
+	tpie::log_debug() << s.describe() << std::endl;
+	size_t d = s.read();
+	tpie::log_debug() << s.describe() << std::endl;
+	tpie::log_debug() << "Got " << d << ", expected "
+		<< seekPosition << std::endl;
+	if (d != seekPosition) return false;
+	return true;
+}
+
 int main(int argc, char ** argv) {
 	return tpie::tests(argc, argv)
 		.test(basic_test, "basic", "n", static_cast<size_t>(1000))
+		.test(read_seek_test, "read_seek")
 		;
 }

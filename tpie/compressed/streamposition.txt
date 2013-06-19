@@ -1,0 +1,10 @@
+Invariant.
+
+A stream is either read-only or write-only.
+
+If it is read-only, the stream position is always maintained in m_position, and
+get_position will not block.
+
+If it is write-only, m_position.item_offset and m_position.block_number are
+maintained; m_position.block_size is zero; m_position.read_offset is retrieved
+on demand through a struct shared between the stream and the thread.

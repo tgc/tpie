@@ -76,9 +76,11 @@ public:
 
 private:
 	void process_read_request(read_request & rr) {
+		// Note the blockSize/readOffset semantics defined in a docstring for
+		// compressed_stream::m_nextReadOffset.
 		stream_size_type blockSize = rr.block_size();
 		stream_size_type readOffset = rr.read_offset();
-		if (readOffset == 0) {
+		if (blockSize == 0) {
 			memory_size_type nRead = rr.file_accessor().read(readOffset, &blockSize, sizeof(blockSize));
 			if (nRead != sizeof(blockSize)) {
 				rr.set_end_of_stream();

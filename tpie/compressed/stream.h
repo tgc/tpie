@@ -33,6 +33,7 @@
 #include <tpie/compressed/thread.h>
 #include <tpie/compressed/buffer.h>
 #include <tpie/compressed/request.h>
+#include <tpie/compressed/position.h>
 
 namespace tpie {
 
@@ -45,7 +46,8 @@ protected:
 		enum type {
 			none,
 			beginning,
-			end
+			end,
+			position
 		};
 	};
 
@@ -260,6 +262,7 @@ public:
 		: compressed_stream_base(sizeof(T), blockFactor)
 		, m_seekState(seek_state::beginning)
 		, m_bufferState(buffer_state::write_only)
+		, m_position(stream_position(0, 0, 0, 0))
 		, m_nextReadOffset(0)
 		, m_nextBlockSize(0)
 		, m_offset(0)
@@ -269,6 +272,59 @@ public:
 
 	~compressed_stream() {
 		this->close();
+	}
+
+	void describe(std::ostream & out) {
+		if (!this->is_open()) {
+			out << "[Closed stream]";
+			return;
+		}
+
+		out << "[(" << m_byteStreamAccessor.path() << ") item " << offset();
+		out << " (block " << m_position.block_number()
+			<< " @ byte " << m_position.read_offset()
+			<< ", size " << m_position.block_size()
+			<< ", item " << m_position.item_offset()
+			<< ")";
+
+		switch (m_seekState) {
+			case seek_state::none:
+				break;
+			case seek_state::beginning:
+				out << ", seeking to beginning";
+				break;
+			case seek_state::end:
+				out << ", seeking to end";
+				break;
+			case seek_state::position:
+				out << ", seeking to position";
+				break;
+		}
+
+		switch (m_bufferState) {
+			case buffer_state::write_only:
+				out << ", buffer write-only";
+				break;
+			case buffer_state::read_only:
+				out << ", buffer read-only";
+				break;
+		}
+
+		if (m_bufferDirty)
+			out << " dirty";
+
+		if (can_read()) out << ", can read";
+		else out << ", cannot read";
+
+		out << ", at least " << m_streamBlocks << " blocks";
+
+		out << ']';
+	}
+
+	std::string describe() {
+		std::stringstream ss;
+		describe(ss);
+		return ss.str();
 	}
 
 	virtual void post_open() override {
@@ -317,15 +373,32 @@ public:
 		seek(0);
 	}
 
+	stream_position get_position() {
+		switch (m_bufferState) {
+			case buffer_state::read_only:
+				return m_position;
+			case buffer_state::write_only:
+				throw exception("What do?");
+		}
+		throw exception("get_position: Unreachable statement");
+	}
+
+	void set_position(const stream_position & pos) {
+		m_position = pos;
+		m_seekState = seek_state::position;
+	}
+
 private:
 	const T & read_ref() {
 		if (m_seekState != seek_state::none) perform_seek();
 		if (!can_read()) throw stream_exception("!can_read()");
 		if (m_nextItem == m_lastItem) {
 			compressor_thread_lock l(compressor());
-			get_buffer(l, m_streamBlocks++);
-			read_next_block(l);
+			read_next_block(l, m_position.block_number() + 1);
+		} else {
+			m_position.advance_item();
 		}
+		++m_offset;
 		return *m_nextItem++;
 	}
 
@@ -371,6 +444,7 @@ public:
 		}
 		*m_nextItem++ = item;
 		this->m_bufferDirty = true;
+		++m_offset;
 	}
 
 	template <typename IT>
@@ -395,8 +469,23 @@ protected:
 			&& !m_byteStreamAccessor.empty())
 		{
 			m_nextReadOffset = 0;
-			get_buffer(l, 0);
-			read_next_block(l);
+			read_next_block(l, 0);
+			m_bufferState = buffer_state::read_only;
+		} else if (m_seekState == seek_state::position) {
+			m_nextReadOffset = m_position.read_offset();
+			m_nextBlockSize = m_position.block_size();
+			memory_size_type itemOffset = m_position.item_offset();
+			read_next_block(l, m_position.block_number());
+
+			memory_size_type blockItems = m_lastItem - m_bufferBegin;
+
+			if (itemOffset > blockItems) {
+				throw exception("perform_seek: Item offset out of bounds");
+			} else if (itemOffset == blockItems) {
+				throw exception("perform_seek: Item offset at bounds");
+			}
+
+			m_nextItem = m_bufferBegin + itemOffset;
 			m_bufferState = buffer_state::read_only;
 		} else {
 			get_buffer(l, m_streamBlocks++);
@@ -424,7 +513,9 @@ public:
 		get_buffer(lock, m_streamBlocks++);
 	}
 
-	void read_next_block(compressor_thread_lock & lock) {
+	void read_next_block(compressor_thread_lock & lock, stream_size_type blockNumber) {
+		get_buffer(lock, blockNumber);
+
 		compressor_request r;
 		read_request & rr =
 			r.set_read_request(m_buffer,
@@ -439,6 +530,11 @@ public:
 		}
 		if (rr.end_of_stream())
 			throw end_of_stream_exception();
+
+		if (blockNumber >= m_streamBlocks)
+			m_streamBlocks = blockNumber + 1;
+
+		m_position = stream_position(m_nextReadOffset, 0, blockNumber, m_nextBlockSize);
 
 		m_nextReadOffset = rr.next_read_offset();
 		m_nextBlockSize = rr.next_block_size();
@@ -461,14 +557,13 @@ private:
 	/** In read mode only: End of readable buffer. */
 	T * m_lastItem;
 
-	/** If nextReadOffset is zero,
-	 * the next block to read is the first block and its size is not known.
-	 * In that case, the size of the first block is the first eight bytes,
-	 * and the first block begins after those eight bytes.
-	 * If nextReadOffset and nextBlockSize are both non-zero,
+	stream_position m_position;
+
+	/** If nextBlockSize is zero,
+	 * the size of the block to read is the first eight bytes,
+	 * and the block begins after those eight bytes.
+	 * If nextBlockSize is non-zero,
 	 * the next block begins at the given offset and has the given size.
-	 * Otherwise, if nextReadOffset is non-zero and nextBlockSize is zero,
-	 * we have reached the end of the stream.
 	 */
 	stream_size_type m_nextReadOffset;
 	stream_size_type m_nextBlockSize;
