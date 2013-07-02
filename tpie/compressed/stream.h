@@ -413,8 +413,11 @@ public:
 		if (!this->m_open)
 			return false;
 
-		if (m_nextReadOffset == 0 && m_size > 0)
+		if (m_seekState == seek_state::beginning && m_size > 0)
 			return true;
+
+		if (m_seekState == seek_state::end)
+			return false;
 
 		if (m_seekState != seek_state::none)
 			perform_seek();
