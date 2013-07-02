@@ -153,6 +153,7 @@ public:
 			throw exception("Invalid request");
 
 		m_requests.push(r);
+		m_requests.back().get_request_base().initiate_request();
 		m_newRequest.notify_one();
 	}
 

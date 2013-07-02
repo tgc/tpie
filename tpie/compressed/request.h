@@ -54,8 +54,8 @@ public:
 	// any, stream
 	void wait(compressor_thread_lock & lock);
 
-	// any, thread
-	void initiate_request(compressor_thread_lock & /*lock*/) {
+	// any, stream
+	void initiate_request() {
 		m_done = m_endOfStream = false;
 		m_nextReadOffset = m_nextBlockSize = 0;
 	}
@@ -68,10 +68,10 @@ public:
 		if (m_blockNumber != std::numeric_limits<stream_size_type>::max()
 			&& blockNumber < m_blockNumber)
 		{
-			log_debug() << "set_block_info(blockNumber=" << blockNumber << "): "
+			log_debug() << "set_block_info(blockNumber=" << blockNumber << ", readOffset=" << readOffset << ", blockSize=" << blockSize << "): "
 				<< "We already know the size of block " << m_blockNumber << std::endl;
 		} else {
-			log_debug() << "set_block_info(blockNumber=" << blockNumber << "): "
+			log_debug() << "set_block_info(blockNumber=" << blockNumber << ", readOffset=" << readOffset << ", blockSize=" << blockSize << "): "
 				<< "Previous was " << m_blockNumber << std::endl;
 			m_blockNumber = blockNumber;
 			m_readOffset = readOffset;
@@ -172,7 +172,23 @@ class __attribute__((__may_alias__)) read_request;
 class __attribute__((__may_alias__)) write_request;
 #endif // __GNUC__
 
-class read_request {
+class request_base {
+protected:
+	request_base(compressor_response * response)
+		: m_response(response)
+	{
+	}
+
+public:
+	void initiate_request() {
+		m_response->initiate_request();
+	}
+
+protected:
+	compressor_response * m_response;
+};
+
+class read_request : public request_base {
 public:
 	typedef boost::shared_ptr<compressor_buffer> buffer_t;
 	typedef file_accessor::byte_stream_accessor<default_raw_file_accessor> file_accessor_t;
@@ -183,11 +199,11 @@ public:
 				 stream_size_type readOffset,
 				 stream_size_type blockSize,
 				 compressor_response * response)
-		: m_buffer(buffer)
+		: request_base(response)
+		, m_buffer(buffer)
 		, m_fileAccessor(fileAccessor)
 		, m_readOffset(readOffset)
 		, m_blockSize(blockSize)
-		, m_response(response)
 	{
 	}
 
@@ -230,10 +246,9 @@ private:
 	 */
 	const stream_size_type m_readOffset;
 	const stream_size_type m_blockSize;
-	compressor_response * m_response;
 };
 
-class write_request {
+class write_request : public request_base {
 public:
 	typedef boost::shared_ptr<compressor_buffer> buffer_t;
 	typedef file_accessor::byte_stream_accessor<default_raw_file_accessor> file_accessor_t;
@@ -243,11 +258,11 @@ public:
 				  memory_size_type blockItems,
 				  stream_size_type blockNumber,
 				  compressor_response * response)
-		: m_buffer(buffer)
+		: request_base(response)
+		, m_buffer(buffer)
 		, m_fileAccessor(fileAccessor)
 		, m_blockItems(blockItems)
 		, m_blockNumber(blockNumber)
-		, m_response(response)
 	{
 	}
 
@@ -275,7 +290,6 @@ private:
 	file_accessor_t * m_fileAccessor;
 	const memory_size_type m_blockItems;
 	const stream_size_type m_blockNumber;
-	compressor_response * m_response;
 };
 
 class compressor_request_kind {
@@ -381,6 +395,16 @@ public:
 	// Precondition: kind() == WRITE
 	const write_request & get_write_request() const {
 		return *reinterpret_cast<const write_request *>(m_payload);
+	}
+
+	// Precondition: kind() != NONE
+	request_base & get_request_base() {
+		return *reinterpret_cast<request_base *>(m_payload);
+	}
+
+	// Precondition: kind() != NONE
+	const request_base & get_request_base() const {
+		return *reinterpret_cast<const request_base *>(m_payload);
 	}
 
 	compressor_request_kind::type kind() const {

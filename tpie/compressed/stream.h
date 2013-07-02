@@ -446,6 +446,7 @@ public:
 		this->m_bufferDirty = true;
 		++m_offset;
 		++m_size;
+		m_position.advance_item();
 	}
 
 	template <typename IT>
@@ -509,6 +510,7 @@ public:
 		memory_size_type blockItems = m_nextItem - m_bufferBegin;
 		m_buffer->set_size(blockItems * sizeof(T));
 		compressor_request r;
+		std::cout << "Flush block " << m_streamBlocks << std::endl;
 		r.set_write_request(m_buffer,
 							&m_byteStreamAccessor,
 							blockItems,
