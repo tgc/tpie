@@ -35,42 +35,41 @@ private:
 
 	uint64_t m_readOffset;
 	uint64_t m_blockNumber;
-	uint32_t m_itemOffset;
-	uint32_t m_blockSize;
+	uint64_t m_offset;
+	uint32_t m_blockItemIndex;
 
 	stream_position(stream_size_type readOffset,
-					memory_size_type itemOffset,
+					memory_size_type blockItemIndex,
 					stream_size_type blockNumber,
-					stream_size_type blockSize)
+					stream_size_type offset)
 		: m_readOffset(readOffset)
 		, m_blockNumber(blockNumber)
-		, m_itemOffset(static_cast<uint32_t>(itemOffset))
-		, m_blockSize(static_cast<uint32_t>(blockSize))
+		, m_offset(offset)
+		, m_blockItemIndex(static_cast<uint32_t>(blockItemIndex))
 	{
-		if (m_itemOffset != itemOffset)
-			throw exception("stream_position: Item offset out of bounds");
-		if (m_blockSize != blockSize)
-			throw exception("stream_position: Block size out of bounds");
+		if (m_blockItemIndex != blockItemIndex)
+			throw exception("stream_position: Block item index out of bounds");
 	}
 
 	stream_size_type read_offset() const {
 		return m_readOffset;
 	}
 
-	memory_size_type item_offset() const {
-		return static_cast<memory_size_type>(m_itemOffset);
+	memory_size_type block_item_index() const {
+		return m_blockItemIndex;
 	}
 
 	stream_size_type block_number() const {
 		return m_blockNumber;
 	}
 
-	stream_size_type block_size() const {
-		return m_blockSize;
+	stream_size_type offset() const {
+		return m_offset;
 	}
 
 	void advance_item() {
-		++m_itemOffset;
+		++m_blockItemIndex;
+		++m_offset;
 	}
 };
 

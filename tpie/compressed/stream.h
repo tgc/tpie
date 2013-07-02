@@ -265,7 +265,6 @@ public:
 		, m_position(stream_position(0, 0, 0, 0))
 		, m_nextReadOffset(0)
 		, m_nextBlockSize(0)
-		, m_offset(0)
 		, m_streamBlocks(0)
 	{
 	}
@@ -280,11 +279,11 @@ public:
 			return;
 		}
 
-		out << "[(" << m_byteStreamAccessor.path() << ") item " << offset();
+		out << "[(" << m_byteStreamAccessor.path() << ") item " << offset()
+			<< " of " << size();
 		out << " (block " << m_position.block_number()
 			<< " @ byte " << m_position.read_offset()
-			<< ", size " << m_position.block_size()
-			<< ", item " << m_position.item_offset()
+			<< ", item " << m_position.block_item_index()
 			<< ")";
 
 		switch (m_seekState) {
@@ -339,18 +338,19 @@ public:
 				m_bufferState = buffer_state::read_only;
 			else
 				m_bufferState = buffer_state::write_only;
-			m_offset = 0;
+			m_position = stream_position(0, 0, 0, 0);
 		} else if (whence == end && offset == 0) {
 			m_seekState = seek_state::end;
 			m_bufferState = buffer_state::write_only;
-			m_offset = size();
+			// TODO m_position = ?
+			//m_offset = size();
 		} else {
 			throw stream_exception("Random seeks are not supported");
 		}
 	}
 
 	stream_size_type offset() const {
-		return m_offset;
+		return m_position.offset();
 	}
 
 	stream_size_type size() const {
@@ -398,7 +398,6 @@ private:
 		} else {
 			m_position.advance_item();
 		}
-		++m_offset;
 		return *m_nextItem++;
 	}
 
@@ -473,8 +472,8 @@ protected:
 			m_bufferState = buffer_state::read_only;
 		} else if (m_seekState == seek_state::position) {
 			m_nextReadOffset = m_position.read_offset();
-			m_nextBlockSize = m_position.block_size();
-			memory_size_type itemOffset = m_position.item_offset();
+			m_nextBlockSize = 0;
+			memory_size_type blockItemIndex = m_position.block_item_index();
 			read_next_block(l, m_position.block_number());
 
 			memory_size_type blockItems = m_lastItem - m_bufferBegin;
@@ -500,6 +499,7 @@ private:
 		m_buffer = this->m_buffers.get_buffer(l, blockNumber);
 		m_bufferBegin = reinterpret_cast<T *>(m_buffer->get());
 		m_bufferEnd = m_bufferBegin + block_items();
+		this->m_bufferDirty = false;
 	}
 
 public:

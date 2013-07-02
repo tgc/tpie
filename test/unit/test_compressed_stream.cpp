@@ -24,12 +24,22 @@ bool basic_test(size_t n) {
 	tpie::compressed_stream<size_t> s;
 	s.open();
 	for (size_t i = 0; i < n; ++i) {
+		if (s.size() != i) {
+			tpie::log_error() << "size() == " << s.size()
+				<< ", expected " << i << std::endl;
+			return false;
+		}
 		s.write(i);
 	}
 	s.seek(0);
 	for (size_t i = 0; i < n; ++i) {
 		if (!s.can_read()) {
 			tpie::log_error() << "!can_read @ " << i << " out of " << n << std::endl;
+			return false;
+		}
+		if (s.size() != n) {
+			tpie::log_error() << "size() == " << s.size()
+				<< " at position " << i << ", expected " << n << std::endl;
 			return false;
 		}
 		size_t r = s.read();
@@ -50,24 +60,34 @@ bool read_seek_test() {
 	size_t seekPosition = 1 << 10;
 	tpie::temp_file tf;
 	tpie::compressed_stream<size_t> s;
+	tpie::log_debug() << "Open file" << std::endl;
 	s.open(tf);
 	tpie::log_debug() << s.describe() << std::endl;
+	tpie::log_debug() << "Write items" << std::endl;
 	for (size_t i = 0; i < items; ++i) s.write(i);
 	tpie::log_debug() << s.describe() << std::endl;
+	tpie::log_debug() << "Seek to 0" << std::endl;
 	s.seek(0);
 	tpie::log_debug() << s.describe() << std::endl;
+	tpie::log_debug() << "Read some items" << std::endl;
 	for (size_t i = 0; i < seekPosition; ++i) s.read();
 	tpie::log_debug() << s.describe() << std::endl;
+	tpie::log_debug() << "Get position" << std::endl;
 	tpie::stream_position pos = s.get_position();
 	tpie::log_debug() << s.describe() << std::endl;
+	tpie::log_debug() << "Read more items" << std::endl;
 	for (size_t i = seekPosition; i < items; ++i) s.read();
 	tpie::log_debug() << s.describe() << std::endl;
+	tpie::log_debug() << "Set position" << std::endl;
 	s.set_position(pos);
 	tpie::log_debug() << s.describe() << std::endl;
+	tpie::log_debug() << "Read single item" << std::endl;
 	size_t d = s.read();
 	tpie::log_debug() << s.describe() << std::endl;
 	tpie::log_debug() << "Got " << d << ", expected "
 		<< seekPosition << std::endl;
+	s.seek(0);
+	tpie::log_debug() << s.describe() << std::endl;
 	if (d != seekPosition) return false;
 	return true;
 }
