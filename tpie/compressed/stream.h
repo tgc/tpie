@@ -478,13 +478,13 @@ protected:
 
 			memory_size_type blockItems = m_lastItem - m_bufferBegin;
 
-			if (itemOffset > blockItems) {
+			if (blockItemIndex > blockItems) {
 				throw exception("perform_seek: Item offset out of bounds");
-			} else if (itemOffset == blockItems) {
+			} else if (blockItemIndex == blockItems) {
 				throw exception("perform_seek: Item offset at bounds");
 			}
 
-			m_nextItem = m_bufferBegin + itemOffset;
+			m_nextItem = m_bufferBegin + blockItemIndex;
 			m_bufferState = buffer_state::read_only;
 		} else {
 			get_buffer(l, m_streamBlocks++);
@@ -507,7 +507,11 @@ public:
 		memory_size_type blockItems = m_nextItem - m_bufferBegin;
 		m_buffer->set_size(blockItems * sizeof(T));
 		compressor_request r;
-		r.set_write_request(m_buffer, &m_byteStreamAccessor, blockItems);
+		r.set_write_request(m_buffer,
+							&m_byteStreamAccessor,
+							blockItems,
+							m_streamBlocks,
+							&m_response);
 		compressor_thread_lock lock(compressor());
 		compressor().request(r);
 		get_buffer(lock, m_streamBlocks++);
@@ -517,18 +521,17 @@ public:
 		get_buffer(lock, blockNumber);
 
 		compressor_request r;
-		read_request & rr =
-			r.set_read_request(m_buffer,
-							   &m_byteStreamAccessor,
-							   m_nextReadOffset,
-							   m_nextBlockSize,
-							   m_readComplete);
+		r.set_read_request(m_buffer,
+						   &m_byteStreamAccessor,
+						   m_nextReadOffset,
+						   m_nextBlockSize,
+						   &m_response);
 
 		compressor().request(r);
-		while (!rr.done()) {
-			rr.wait(lock);
+		while (!m_response.done()) {
+			m_response.wait(lock);
 		}
-		if (rr.end_of_stream())
+		if (m_response.end_of_stream())
 			throw end_of_stream_exception();
 
 		if (blockNumber >= m_streamBlocks)
@@ -536,8 +539,8 @@ public:
 
 		m_position = stream_position(m_nextReadOffset, 0, blockNumber, m_nextBlockSize);
 
-		m_nextReadOffset = rr.next_read_offset();
-		m_nextBlockSize = rr.next_block_size();
+		m_nextReadOffset = m_response.next_read_offset();
+		m_nextBlockSize = m_response.next_block_size();
 		m_nextItem = m_bufferBegin;
 		memory_size_type itemsRead = m_buffer->size() / sizeof(T);
 		m_lastItem = m_bufferBegin + itemsRead;
@@ -572,10 +575,7 @@ private:
 
 	stream_size_type m_streamBlocks;
 
-	bool m_canReadAgain;
-
-	/** Condition variable indicating a read request is complete. */
-	read_request::condition_t m_readComplete;
+	compressor_response m_response;
 };
 
 } // namespace tpie
