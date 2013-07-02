@@ -354,9 +354,7 @@ public:
 	}
 
 	stream_size_type size() const {
-		stream_size_type sz = m_byteStreamAccessor.size();
-		if (m_bufferDirty) sz += (m_nextItem - m_bufferBegin);
-		return sz;
+		return m_size;
 	}
 
 	void truncate(stream_size_type offset) {
@@ -415,7 +413,7 @@ public:
 		if (!this->m_open)
 			return false;
 
-		if (m_nextReadOffset == 0 && m_byteStreamAccessor.size() > 0)
+		if (m_nextReadOffset == 0 && m_size > 0)
 			return true;
 
 		if (m_seekState != seek_state::none)
@@ -444,6 +442,7 @@ public:
 		*m_nextItem++ = item;
 		this->m_bufferDirty = true;
 		++m_offset;
+		++m_size;
 	}
 
 	template <typename IT>
