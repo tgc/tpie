@@ -144,6 +144,7 @@ set (SOURCES
 	logstream.cpp
 	memory.cpp
 	pipelining/graph.cpp
+	pipelining/merge_sorter.cpp
 	pipelining/pipeline.cpp
 	pipelining/tokens.cpp
 	portability.cpp
