@@ -204,11 +204,20 @@ void tests::start_test(const std::string & name) {
 		(*setups[i])();
 }
 
-void tests::end_test(bool result) {
-	if (result)
-		log.set_status(" ok ");
-	else
-		log.set_status("fail");
+void tests::end_test(test_result::type result) {
+	get_log().flush();
+
+	switch (result) {
+		case test_result::success:
+			log.set_status(" ok ");
+			break;
+		case test_result::failure:
+			log.set_status("fail");
+			break;
+		case test_result::exception:
+			log.set_status("excp");
+			break;
+	}
 
 	if (!result) {
 		std::string bufferedlog = log.buffer.str();
@@ -276,7 +285,7 @@ namespace bits {
 
 	test_runner::test_runner(tests * t, const std::string & name)
 		: t(t)
-		, result(false)
+		, result(test_result::failure)
 	{
 		t->start_test(name);
 	}
@@ -285,7 +294,7 @@ namespace bits {
 		t->end_test(result);
 	}
 
-	void test_runner::set_result(bool result) {
+	void test_runner::set_result(test_result::type result) {
 		this->result = result;
 	}
 
@@ -311,7 +320,7 @@ namespace bits {
 		} catch (const std::runtime_error & e) {
 			log_error() << "Unexpected std::runtime_error: [" << e.what() << "]\n";
 		}
-		set_result(false);
+		set_result(test_result::exception);
 	}
 
 } // namespace bits

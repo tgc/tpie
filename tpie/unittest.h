@@ -30,6 +30,20 @@
 
 namespace tpie {
 
+class test_result {
+public:
+	enum type {
+		success,
+		failure,
+		exception
+	};
+private:
+	test_result() /*= delete*/;
+	test_result(const test_result &) /*= delete*/;
+	test_result & operator=(const test_result &) /*= delete*/;
+	~test_result();
+};
+
 class teststream_buf: public std::basic_streambuf<char, std::char_traits<char> > {
 private:
 	const static size_t line_size = 2048;
@@ -92,12 +106,15 @@ class tests;
 namespace bits {
 	class test_runner {
 		tests * t;
-		bool result;
+		test_result::type result;
 
 	public:
 		test_runner(tests * t, const std::string & name);
 
-		void set_result(bool result);
+		void set_result(test_result::type result);
+		void set_result(bool result) {
+			set_result(result ? test_result::success : test_result::failure);
+		}
 		void exception();
 
 		~test_runner();
@@ -265,7 +282,10 @@ private:
 	
 
 	void start_test(const std::string & name);
-	void end_test(bool result);
+	void end_test(test_result::type result);
+	void end_test(bool result) {
+		end_test(result ? test_result::success : test_result::failure);
+	}
 
 	template <typename T>
 	T get_arg(const std::string & name, T def) const;
