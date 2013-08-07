@@ -225,3 +225,11 @@ stream_size_type compressed_stream_base::current_file_size(compressor_thread_loc
 }
 
 } // namespace tpie
+
+#include <tpie/compressed/stream.inl>
+
+namespace tpie {
+
+template class compressed_stream<size_t>;
+
+} // namespace tpie
