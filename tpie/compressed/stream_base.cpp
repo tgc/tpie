@@ -232,4 +232,18 @@ namespace tpie {
 
 template class compressed_stream<size_t>;
 
+compressed_stats::~compressed_stats() {
+	std::cout << cheap_writes << ' ' << expensive_writes << '\n';
+	std::cout << cheap_reads << ' ' << expensive_reads << std::endl;
+}
+
+memory_size_type compressed_stats::cheap_writes = 0;
+memory_size_type compressed_stats::expensive_writes = 0;
+memory_size_type compressed_stats::cheap_reads = 0;
+memory_size_type compressed_stats::expensive_reads = 0;
+
 } // namespace tpie
+
+namespace {
+	tpie::compressed_stats stats;
+}

@@ -39,6 +39,15 @@
 
 namespace tpie {
 
+class compressed_stats {
+public:
+	static memory_size_type cheap_writes;
+	static memory_size_type expensive_writes;
+	static memory_size_type cheap_reads;
+	static memory_size_type expensive_reads;
+	~compressed_stats();
+};
+
 enum compression_flags {
 	compression_none = 0,
 	compression_normal = 1
@@ -732,10 +741,12 @@ private:
 	///////////////////////////////////////////////////////////////////////////
 	const T & read_ref() {
 		if (m_cachedReads > 0) {
+			++compressed_stats::cheap_reads;
 			--m_cachedReads;
 			++m_offset;
 			return *m_nextItem++;
 		}
+		++compressed_stats::expensive_reads;
 		if (m_seekState != seek_state::none) perform_seek();
 		if (m_offset == m_size) throw end_of_stream_exception();
 		if (m_nextItem == m_bufferEnd) {
@@ -820,12 +831,14 @@ public:
 
 	void write(const T & item) {
 		if (m_cachedWrites > 0) {
+			++compressed_stats::cheap_writes;
 			*m_nextItem++ = item;
 			++m_size;
 			++m_offset;
 			--m_cachedWrites;
 			return;
 		}
+		++compressed_stats::expensive_writes;
 
 		write_expensive(item);
 	}
