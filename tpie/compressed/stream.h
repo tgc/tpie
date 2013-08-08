@@ -129,17 +129,17 @@ public:
 			  access_type accessType = access_read_write,
 			  memory_size_type userDataSize = 0,
 			  cache_hint cacheHint=access_sequential,
-			  int compressionFlags=compression_normal);
+			  int compressionFlags=compression_none);
 
 	void open(memory_size_type userDataSize = 0,
 			  cache_hint cacheHint=access_sequential,
-			  int compressionFlags=compression_normal);
+			  int compressionFlags=compression_none);
 
 	void open(temp_file & file,
 			  access_type accessType = access_read_write,
 			  memory_size_type userDataSize = 0,
 			  cache_hint cacheHint=access_sequential,
-			  int compressionFlags=compression_normal);
+			  int compressionFlags=compression_none);
 
 	void close();
 
