@@ -26,7 +26,7 @@ class tests {
 public:
 
 static bool basic_test(size_t n) {
-	tpie::compressed_stream<size_t> s;
+	tpie::file_stream<size_t> s;
 	s.open(0, tpie::access_sequential, flags);
 	for (size_t i = 0; i < n; ++i) {
 		if (s.size() != i) {
@@ -67,7 +67,7 @@ static bool read_seek_test(size_t seekPosition, size_t items) {
 	}
 	tpie::temp_file tf;
 
-	tpie::compressed_stream<size_t> s;
+	tpie::file_stream<size_t> s;
 	tpie::log_debug() << s.describe() << std::endl;
 
 	tpie::log_debug() << "Open file" << std::endl;
@@ -129,7 +129,7 @@ static bool read_back_seek_test() {
 	const size_t BLOCKS = 5;
 	tpie::array<tpie::stream_position> positions(BLOCKS);
 	{
-		tpie::compressed_stream<size_t> s;
+		tpie::file_stream<size_t> s;
 		s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 		for (size_t block = 0; block < BLOCKS; ++block) {
 			positions[block] = s.get_position();
@@ -138,7 +138,7 @@ static bool read_back_seek_test() {
 	}
 	tpie::stream_size_type r1 = tpie::get_bytes_read();
 	{
-		tpie::compressed_stream<size_t> s;
+		tpie::file_stream<size_t> s;
 		s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 		for (size_t block = 0; block < BLOCKS; ++block) {
 			s.set_position(positions[block]);
@@ -147,7 +147,7 @@ static bool read_back_seek_test() {
 	}
 	tpie::stream_size_type r2 = tpie::get_bytes_read();
 	{
-		tpie::compressed_stream<size_t> s;
+		tpie::file_stream<size_t> s;
 		s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 		for (size_t block = 0; block < BLOCKS; ++block) {
 			if (block+1 == BLOCKS)
@@ -169,12 +169,12 @@ static bool read_back_seek_test_2() {
 	tpie::temp_file tf;
 	const size_t blockSize = 2*1024*1024 / sizeof(size_t);
 	{
-		tpie::compressed_stream<size_t> s;
+		tpie::file_stream<size_t> s;
 		s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 		for (size_t i = 0; i < blockSize; ++i) s.write(i);
 	}
 	{
-		tpie::compressed_stream<size_t> s;
+		tpie::file_stream<size_t> s;
 		s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 		s.seek(0, tpie::file_stream_base::end);
 		s.write(1);
@@ -187,7 +187,7 @@ static bool read_back_seek_test_2() {
 static bool position_test_0(size_t n) {
 	tpie::temp_file tf;
 
-	tpie::compressed_stream<size_t> s;
+	tpie::file_stream<size_t> s;
 	s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 	tpie::log_debug() << "Recording array of positions" << std::endl;
 	tpie::array<tpie::stream_position> positions(n);
@@ -241,7 +241,7 @@ static bool position_test_0(size_t n) {
 
 static bool position_seek_test() {
 	tpie::temp_file tf;
-	tpie::compressed_stream<size_t> s;
+	tpie::file_stream<size_t> s;
 	s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 	for (size_t i = 0; i < 5; ++i) s.write(i);
 	s.seek(0, tpie::file_stream_base::end);
@@ -273,7 +273,7 @@ static bool position_seek_test() {
 
 static bool position_test_1() {
 	tpie::temp_file tf;
-	tpie::compressed_stream<size_t> s;
+	tpie::file_stream<size_t> s;
 	s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 
 	size_t blockSize = 2*1024*1024 / sizeof(size_t);
@@ -296,7 +296,7 @@ static bool position_test_1() {
 
 static bool position_test_2() {
 	tpie::temp_file tf;
-	tpie::compressed_stream<size_t> s;
+	tpie::file_stream<size_t> s;
 	s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 	size_t blockSize = 2*1024*1024 / sizeof(size_t);
 
@@ -343,7 +343,7 @@ static bool position_test_2() {
 
 static bool position_test_3(size_t n) {
 	tpie::temp_file tf;
-	tpie::compressed_stream<size_t> s;
+	tpie::file_stream<size_t> s;
 	s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 
 	size_t i = 0;
@@ -383,7 +383,7 @@ static bool reopen_test_1(size_t n) {
 	size_t k = 0;
 
 	while (k < n) {
-		tpie::compressed_stream<size_t> s;
+		tpie::file_stream<size_t> s;
 		s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 
 		TEST_ASSERT(s.offset() == 0);
@@ -417,7 +417,7 @@ static bool reopen_test_2() {
 
 	tpie::stream_position pos1a;
 	{
-		tpie::compressed_stream<size_t> s;
+		tpie::file_stream<size_t> s;
 		s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 		for (size_t i = 0; i < blockSize; ++i) s.write(i);
 		TEST_ASSERT(s.size() == blockSize);
@@ -426,7 +426,7 @@ static bool reopen_test_2() {
 	tpie::stream_position pos1b;
 	tpie::stream_position pos2b;
 	{
-		tpie::compressed_stream<size_t> s;
+		tpie::file_stream<size_t> s;
 		s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 		TEST_ASSERT(s.size() == blockSize);
 		TEST_ASSERT(s.offset() == 0);
@@ -443,7 +443,7 @@ static bool reopen_test_2() {
 	TEST_ASSERT(pos1a == pos1b);
 	tpie::stream_position pos2c;
 	{
-		tpie::compressed_stream<size_t> s;
+		tpie::file_stream<size_t> s;
 		s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 		TEST_ASSERT(s.size() == 2*blockSize);
 		s.set_position(pos1b);
@@ -461,7 +461,7 @@ static bool reopen_test_2() {
 static bool seek_test() {
 	tpie::temp_file tf;
 	size_t blockSize = 2*1024*1024 / sizeof(size_t);
-	tpie::compressed_stream<size_t> s;
+	tpie::file_stream<size_t> s;
 	s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 	TEST_ASSERT(s.offset() == 0);
 	for (size_t i = 0; i < blockSize + 1; ++i) s.write(i);
@@ -478,7 +478,7 @@ static bool seek_test() {
 static bool seek_test_2() {
 	tpie::temp_file tf;
 	size_t blockSize = 2*1024*1024 / sizeof(size_t);
-	tpie::compressed_stream<size_t> s;
+	tpie::file_stream<size_t> s;
 	s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 	for (size_t i = 0; i < blockSize; ++i) s.write(i);
 	s.seek(0);
@@ -490,7 +490,7 @@ static bool seek_test_2() {
 static bool position_test_4() {
 	tpie::temp_file tf;
 	size_t blockSize = 2*1024*1024 / sizeof(size_t);
-	tpie::compressed_stream<size_t> s;
+	tpie::file_stream<size_t> s;
 	s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 	for (size_t i = 0; i < blockSize; ++i) s.write(i);
 	tpie::stream_position pos = s.get_position();
@@ -503,7 +503,7 @@ static bool position_test_4() {
 
 static bool truncate_test() {
 	tpie::temp_file tf;
-	tpie::compressed_stream<size_t> s;
+	tpie::file_stream<size_t> s;
 	s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 	s.write(0);
 	s.truncate(0);
@@ -519,7 +519,7 @@ static bool truncate_test_2() {
 	size_t c = 3000000;
 
 	tpie::temp_file tf;
-	tpie::compressed_stream<size_t> s;
+	tpie::file_stream<size_t> s;
 	s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 
 	for (size_t i = 0; i < a; ++i) s.write(i);
@@ -542,7 +542,7 @@ static bool truncate_test_2() {
 static bool position_test_5() {
 	tpie::temp_file tf;
 	size_t blockSize = 2*1024*1024 / sizeof(size_t);
-	tpie::compressed_stream<size_t> s;
+	tpie::file_stream<size_t> s;
 	s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 	for (size_t i = 0; i < 2*blockSize; ++i) s.write(i);
 	tpie::stream_position pos1 = s.get_position();
@@ -556,7 +556,7 @@ static bool position_test_5() {
 
 static bool position_test_6() {
 	tpie::temp_file tf;
-	tpie::compressed_stream<size_t> s;
+	tpie::file_stream<size_t> s;
 	s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 	s.write(1);
 	s.write(2);
@@ -572,7 +572,7 @@ static bool position_test_6() {
 static bool position_test_7() {
 	tpie::temp_file tf;
 	size_t blockSize = 2*1024*1024 / sizeof(size_t);
-	tpie::compressed_stream<size_t> s;
+	tpie::file_stream<size_t> s;
 	s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 	for (size_t i = 0; i < blockSize; ++i) s.write(i);
 	tpie::stream_position pos1 = s.get_position();
@@ -595,12 +595,12 @@ static bool position_test_8() {
 	tpie::temp_file tf;
 	size_t blockSize = 2*1024*1024 / sizeof(size_t);
 	{
-		tpie::compressed_stream<size_t> s;
+		tpie::file_stream<size_t> s;
 		s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 		for (size_t i = 0; i < blockSize; ++i) s.write(i);
 	}
 	{
-		tpie::compressed_stream<size_t> s;
+		tpie::file_stream<size_t> s;
 		s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 		s.seek(0, tpie::file_stream_base::end);
 		s.get_position();
@@ -611,13 +611,13 @@ static bool position_test_8() {
 static bool position_test_9() {
 	tpie::temp_file tf;
 	size_t blockSize = 2*1024*1024 / sizeof(size_t);
-	tpie::compressed_stream<size_t> s;
+	tpie::file_stream<size_t> s;
 	s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 	for (size_t i = 0; i < 2*blockSize; ++i) s.write(i);
 	s.close();
 	tf.free();
 	{
-		tpie::compressed_stream<size_t> s2;
+		tpie::file_stream<size_t> s2;
 		s2.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 		for (size_t i = 0; i < blockSize; ++i) s2.write(i);
 	}
@@ -635,7 +635,7 @@ static bool uncompressed_test(size_t n) {
 		for (size_t i = 0; i < n; ++i) s.write(~i);
 	}
 	{
-		tpie::compressed_stream<size_t> s;
+		tpie::file_stream<size_t> s;
 		s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 		TEST_ASSERT(s.is_open());
 		TEST_ASSERT(s.can_read());
@@ -647,7 +647,7 @@ static bool uncompressed_test(size_t n) {
 		TEST_ASSERT(!s.can_read());
 	}
 	{
-		tpie::compressed_stream<size_t> s;
+		tpie::file_stream<size_t> s;
 		s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 		TEST_ASSERT(s.is_open());
 		TEST_ASSERT(s.can_read());
@@ -691,7 +691,7 @@ static bool uncompressed_test(size_t n) {
 static bool uncompressed_new_test(size_t n) {
 	tpie::temp_file tf;
 	{
-		tpie::compressed_stream<size_t> s;
+		tpie::file_stream<size_t> s;
 		s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, tpie::compression_none);
 		for (size_t i = 0; i < n; ++i) s.write(i);
 	}
@@ -707,7 +707,7 @@ static bool uncompressed_new_test(size_t n) {
 
 static bool backwards_test(size_t n) {
 	tpie::temp_file tf;
-	tpie::compressed_stream<size_t> s;
+	tpie::file_stream<size_t> s;
 	s.open(tf, tpie::access_read_write, 0, tpie::access_sequential, flags);
 
 	size_t x = 0;
