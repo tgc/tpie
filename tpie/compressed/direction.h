@@ -26,7 +26,7 @@
 
 namespace tpie {
 
-struct direction {
+struct read_direction {
 	enum type {
 		forward,
 		backward
