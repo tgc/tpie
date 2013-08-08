@@ -51,7 +51,8 @@
 #include <tpie/fractional_progress.h>
 
 #include <tpie/pipelining/merge_sorter.h>
-#include <tpie/compressed/stream.h>
+#include <tpie/file_stream.h>
+#include <tpie/uncompressed_stream.h>
 
 namespace tpie {
 
@@ -141,9 +142,19 @@ void generic_sort(Stream & instream, Stream & outstream, Compare comp,
 /// object.
 ///////////////////////////////////////////////////////////////////////////////
 template<typename T, typename Compare>
-void sort(file_stream<T> &instream, file_stream<T> &outstream,
+void sort(uncompressed_stream<T> &instream, uncompressed_stream<T> &outstream,
 		  Compare comp, progress_indicator_base & indicator) {
-	bits::generic_sort<file_stream<T>, T, Compare>(instream, outstream, comp, indicator);
+	bits::generic_sort<uncompressed_stream<T>, T, Compare>(instream, outstream, comp, indicator);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+/// \brief Sort elements of a stream using the less-than operator.
+///////////////////////////////////////////////////////////////////////////////
+template<typename T>
+void sort(uncompressed_stream<T> &instream, uncompressed_stream<T> &outstream,
+		  tpie::progress_indicator_base* indicator=NULL) {
+	std::less<T> comp;
+	sort(instream, outstream, comp, *indicator);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -153,7 +164,7 @@ template<typename T>
 void sort(file_stream<T> &instream, file_stream<T> &outstream,
 		  tpie::progress_indicator_base* indicator=NULL) {
 	std::less<T> comp;
-	sort(instream, outstream, comp, *indicator);
+	bits::generic_sort<file_stream<T>, T>(instream, outstream, comp, *indicator);
 }
 
 
@@ -169,7 +180,7 @@ void sort(file_stream<T> &instream, file_stream<T> &outstream,
 /// comparator object.
 ///////////////////////////////////////////////////////////////////////////////
 template<typename T, typename Compare>
-void sort(file_stream<T> &instream, Compare comp,
+void sort(uncompressed_stream<T> &instream, Compare comp,
 		  progress_indicator_base & indicator) {
 	sort(instream, instream, comp, indicator);
 }
@@ -179,18 +190,25 @@ void sort(file_stream<T> &instream, Compare comp,
 /// comparator object.
 ///////////////////////////////////////////////////////////////////////////////
 template<typename T, typename Compare>
-void sort(compressed_stream<T> &instream, Compare comp,
+void sort(file_stream<T> &instream, Compare comp,
 		  progress_indicator_base & indicator) {
-	bits::generic_sort<compressed_stream<T>, T>(instream, comp, indicator);
+	bits::generic_sort<file_stream<T>, T>(instream, comp, indicator);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 /// \brief Sort elements of a stream in-place using the less-than operator.
 ///////////////////////////////////////////////////////////////////////////////
 template<typename T>
-void sort(file_stream<T> &instream, 
+void sort(uncompressed_stream<T> &instream, 
 		  progress_indicator_base &indicator) {
 	sort(instream, instream, &indicator);
+}
+
+template<typename T>
+void sort(file_stream<T> &instream,
+		  progress_indicator_base &indicator) {
+	std::less<T> comp;
+	sort(instream, comp, indicator);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -198,7 +216,7 @@ void sort(file_stream<T> &instream,
 /// no progress indicator.
 ///////////////////////////////////////////////////////////////////////////////
 template <typename T>
-void sort(file_stream<T> & instream) {
+void sort(uncompressed_stream<T> & instream) {
 	sort(instream, instream);
 }
 
