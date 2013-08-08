@@ -1,6 +1,6 @@
-// -*- mode: c++; tab-width: 4; indent-tabs-mode: t; eval: (progn (c-set-style "stroustrup") (c-set-offset 'innamespace 0)); -*-
-// vi:set ts=4 sts=4 sw=4 noet :
-// Copyright 2013, The TPIE development team
+// -*- mode: c++; tab-width: 4; indent-tabs-mode: t; c-file-style: "stroustrup"; -*-
+// vi:set ts=4 sts=4 sw=4 noet cino+=(0 :
+// Copyright 2013 The TPIE development team
 // 
 // This file is part of TPIE.
 // 
@@ -17,10 +17,20 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with TPIE.  If not, see <http://www.gnu.org/licenses/>
 
-#ifndef TPIE_FILE_STREAM_H
-#define TPIE_FILE_STREAM_H
+#include "common.h"
+#include <snappy.h>
 
-#include <tpie/compressed/stream.h>
-#include <tpie/uncompressed_stream.h>
+bool basic_test() {
+	std::string input = "Hello world!";
+	std::string compressed;
+	std::string output;
+	snappy::Compress(input.data(), input.size(), &compressed);
+	snappy::Uncompress(compressed.data(), compressed.size(), &output);
+	return input == output;
+}
 
-#endif // TPIE_FILE_STREAM_H
+int main(int argc, char ** argv) {
+	return tpie::tests(argc, argv)
+	.test(basic_test, "basic")
+	;
+}

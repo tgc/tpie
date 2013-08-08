@@ -5,9 +5,17 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/sysinfo.cpp.in" "${CMAKE_CURRENT_BIN
 set (HEADERS
 		access_type.h
 		ami.h
+		atomic.h
 		backtrace.h
 		cache_hint.h
 		comparator.h
+		compressed/buffer.h
+		compressed/direction.h
+		compressed/predeclare.h
+		compressed/request.h
+		compressed/scheme.h
+		compressed/stream.h
+		compressed/thread.h
 		config.h.cmake
 		cpu_timer.h
 		deprecated.h
@@ -19,9 +27,12 @@ set (HEADERS
 		file_base_crtp.h
 		file_stream.h
 		file_stream_base.h
+		file_accessor/byte_stream_accessor.h
 		file_accessor/file_accessor.h
 		file_accessor/stream_accessor.h
-		file_accessor/stream_accessor.inl
+		file_accessor/stream_accessor_base.h
+		file_accessor/stream_accessor_base.inl
+		file_accessor/compressed_stream_accessor.h
 		file_count.h
 		execution_time_predictor.h
 		imported/cycle.h
@@ -104,6 +115,7 @@ set (HEADERS
 		stats.h
 		types.h
 		tempname.h
+		uncompressed_stream.h
 		unused.h
 		util.h
 		array.h
@@ -120,17 +132,26 @@ set (HEADERS
 		)
 
 set (SOURCES
+	atomic.cpp
 	backtrace.cpp
+	compressed/buffer.cpp
+	compressed/request.cpp
+	compressed/scheme_none.cpp
+	compressed/scheme_snappy.cpp
+	compressed/stream_base.cpp
+	compressed/thread.cpp
 	cpu_timer.cpp
 	file_base.cpp
 	file_count.cpp
 	file_stream_base.cpp
 	execution_time_predictor.cpp
+	file_accessor/compressed_stream_accessor.cpp
 	fractional_progress.cpp
 	job.cpp
 	logstream.cpp
 	memory.cpp
 	pipelining/graph.cpp
+	pipelining/merge_sorter.cpp
 	pipelining/pipeline.cpp
 	pipelining/tokens.cpp
 	portability.cpp
@@ -156,6 +177,10 @@ endif(WIN32)
 add_library(tpie ${HEADERS} ${SOURCES})
 target_link_libraries(tpie ${Boost_LIBRARIES})
 set_target_properties(tpie PROPERTIES FOLDER tpie)
+
+if(TPIE_USE_SNAPPY)
+	target_link_libraries(tpie ${Snappy_LIBRARY})
+endif(TPIE_USE_SNAPPY)
 
 install(TARGETS tpie
 	LIBRARY DESTINATION lib
