@@ -29,19 +29,18 @@
 #include "portability.h"
 #include "tpie_log.h"
 #include <cassert>
-#include "pq_overflow_heap.h"
 #include <iostream>
 #include <fstream>
 #include <stdexcept>
 #include <cmath>
 #include <string>
-#include <cstring> // for memcpy
 #include <sstream>
-#include "pq_merge_heap.h"
 #include <tpie/err.h>
 #include <tpie/stream.h>
 #include <tpie/array.h>
+#include <tpie/internal_priority_queue.h>
 #include <boost/filesystem.hpp>
+#include <tpie/parallel_sort.h>
 
 namespace tpie {
 
@@ -73,10 +72,37 @@ namespace tpie {
 /// integers.
 ///////////////////////////////////////////////////////////////////////////////
 
-template<typename T, typename Comparator = std::less<T>, typename OPQType = pq_overflow_heap<T, Comparator> >
+template<typename T, typename Comparator = std::less<T> >
 class priority_queue {
-	typedef memory_size_type group_type;
-	typedef memory_size_type slot_type;
+	typedef memory_size_type run_type;
+	typedef run_type group_type;
+	typedef run_type slot_type;
+
+	struct merge_heap_element {
+		T item;
+		run_type source;
+
+		merge_heap_element() {}
+
+		merge_heap_element(const T & item, run_type source)
+			: item(item)
+			, source(source)
+		{
+		}
+	};
+
+	struct merge_comp_type {
+		typedef merge_heap_element first_argument_type;
+		typedef merge_heap_element second_argument_type;
+		typedef bool result_type;
+		Comparator comp_;
+		merge_comp_type(Comparator & c) : comp_(c) {}
+		bool operator()(const merge_heap_element & a, const merge_heap_element & b) {
+			return comp_(a.item, b.item);
+		}
+	};
+
+	typedef internal_priority_queue<merge_heap_element, merge_comp_type> merge_heap;
 public:
 	///////////////////////////////////////////////////////////////////////////
 	/// \brief Constructor.
@@ -92,13 +118,6 @@ public:
 	priority_queue(memory_size_type mm_avail, float b=0.0625);
 #endif
 
-
-    /////////////////////////////////////////////////////////
-    ///
-    /// Destructor
-    ///
-    /////////////////////////////////////////////////////////
-    ~priority_queue();
 
     /////////////////////////////////////////////////////////
     ///
@@ -157,14 +176,18 @@ public:
     template <typename F> F pop_equals(F f);
 
 private:
+	struct run_state_type {
+		memory_size_type start;
+		memory_size_type size;
+	};
+
     Comparator comp_;
-    T dummy;
 
     T min;
     bool min_in_buffer;
 
 	/** Overflow priority queue (for buffering inserted elements). Capacity m. */
-	tpie::auto_ptr<OPQType> opq;
+	internal_priority_queue<T, Comparator> opq;
 
 	/** Deletion buffer containing the m' top elements in the entire structure. */
 	tpie::array<T> buffer;
@@ -175,17 +198,14 @@ private:
 	 * in memory. */
 	tpie::array<T> gbuffer0;
 
-	/** Merge buffer of size 2*m. */
-	tpie::array<T> mergebuffer;
-
-	/** 3*(#slots) integers. Slot i contains its elements in cyclic ascending order,
-	 * starting at index slot_state[3*i]. Slot i contains slot_state[3*i+1] elements.
-	 * Its data is in data file index slot_state[3*i+2]. */
-	tpie::array<memory_size_type> slot_state;
+	/** 2*(#slots) integers. Slot i contains its elements in cyclic ascending order,
+	 * starting at index slot_state[2*i]. Slot i contains slot_state[2*i+1] elements.
+	 * Its data is in data file i. */
+	tpie::array<run_state_type> slot_state;
 
 	/** 2*(#groups) integers. Group buffer i has its elements in cyclic ascending order,
 	 * starting at index group_state[2*i]. Gbuffer i contains group_state[2*i+1] elements. */
-	tpie::array<memory_size_type> group_state;
+	tpie::array<run_state_type> group_state;
 
 	/** k, the fanout of each group and the max fanout R. */
 	memory_size_type setting_k;
@@ -196,8 +216,6 @@ private:
 	/** m', the size of the deletion buffer. */
 	memory_size_type setting_mmark;
 
-    memory_size_type slot_data_id;
-
     stream_size_type m_size;
     memory_size_type buffer_size;
     memory_size_type buffer_start;
@@ -206,28 +224,14 @@ private:
 
 	void init(memory_size_type mm_avail);
 
-    void             slot_start_set(slot_type slot, memory_size_type n);
-    memory_size_type slot_start(slot_type slot) const;
-    void             slot_size_set(slot_type slot, memory_size_type n);
-    memory_size_type slot_size(slot_type slot) const;
-    void             group_start_set(group_type group, memory_size_type n);
-    memory_size_type group_start(group_type group) const;
-    void             group_size_set(group_type group, memory_size_type n);
-    memory_size_type group_size(group_type group) const;
-
     array<temp_file> datafiles;
     array<temp_file> groupdatafiles;
 
-    temp_file & slot_data(slot_type slotid);
-    void slot_data_set(slot_type slotid, memory_size_type n);
-    temp_file & group_data(group_type groupid);
-    memory_size_type slot_max_size(slot_type slotid);
-    void write_slot(slot_type slotid, T* arr, memory_size_type len);
+    void write_slot(slot_type slotid, array<T> & arr, memory_size_type len);
     slot_type free_slot(group_type group);
     void empty_group(group_type group);
     void fill_buffer();
     void fill_group_buffer(group_type group);
-    void compact(slot_type slot);
     void validate();
     void remove_group_buffer(group_type group);
     void dump();
