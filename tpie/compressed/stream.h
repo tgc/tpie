@@ -342,11 +342,11 @@ class file_stream : public compressed_stream_base {
 	friend class ami::stream<T>;
 	friend class stack<T>;
 
+public:
 	static const file_stream_base::offset_type beginning = file_stream_base::beginning;
 	static const file_stream_base::offset_type end = file_stream_base::end;
 	static const file_stream_base::offset_type current = file_stream_base::current;
 
-public:
 	typedef T item_type;
 	typedef file_stream_base::offset_type offset_type;
 
