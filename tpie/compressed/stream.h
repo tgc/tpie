@@ -336,7 +336,7 @@ namespace ami {
 /// precondition (for instance by passing an invalid parameter).
 ///////////////////////////////////////////////////////////////////////////////
 template <typename T>
-class compressed_stream : public compressed_stream_base {
+class file_stream : public compressed_stream_base {
 	using compressed_stream_base::seek_state;
 
 	friend class ami::cstream<T>;
@@ -350,7 +350,7 @@ public:
 	typedef T item_type;
 	typedef file_stream_base::offset_type offset_type;
 
-	compressed_stream(double blockFactor=1.0)
+	file_stream(double blockFactor=1.0)
 		: compressed_stream_base(sizeof(T), blockFactor)
 		, m_bufferBegin(0)
 		, m_bufferEnd(0)
@@ -358,11 +358,11 @@ public:
 	{
 	}
 
-	~compressed_stream() {
+	~file_stream() {
 		try {
 			close();
 		} catch (std::exception & e) {
-			log_error() << "Someone threw an error in compressed_stream::~compressed_stream: " << e.what() << std::endl;
+			log_error() << "Someone threw an error in file_stream::~file_stream: " << e.what() << std::endl;
 			throw;
 		}
 	}
